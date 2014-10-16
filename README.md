@@ -1,4 +1,4 @@
-## PX4 Aerial Middleware and Flight Control Stack ##
+## PX4 Aerial Middleware and Flight Control Stack For the GRITS Lab ##
 
 *   Official Website: http://px4.io
 *   License: BSD 3-clause (see LICENSE.md)
