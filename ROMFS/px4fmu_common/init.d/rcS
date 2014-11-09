@@ -128,7 +128,7 @@ then
 	set EXIT_ON_END no
 	set MAV_TYPE none
 	set LOAD_DEFAULT_APPS yes
-	set GPS yes
+	set GPS no
 	set GPS_FAKE no
 	set FAILSAFE none
 
@@ -429,7 +429,7 @@ then
 	#
 	if [ $MAVLINK_FLAGS == default ]
 	then
-		# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
+		# Normal mode, use baudrate 115200 (default) and data rate 1000 bytes/s
 		if [ $TTYS1_BUSY == yes ]
 		then
 			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
@@ -439,16 +439,11 @@ then
 			set EXIT_ON_END yes
 		else
 			# Start MAVLink on default port: ttyS1
-			set MAVLINK_FLAGS "-r 1000"
+			set MAVLINK_FLAGS "-r 1000 -d /dev/ttyS1 -b 115200"
 		fi
 	fi
 
 	mavlink start $MAVLINK_FLAGS
-
-	#
-	# UAVCAN
-	#
-	sh /etc/init.d/rc.uavcan
 
 	#
 	# Sensors, Logging, GPS
@@ -478,37 +473,6 @@ then
 	if [ $OUTPUT_MODE == ardrone ]
 	then
 		ardrone_interface start -d /dev/ttyS1
-	fi
-
-	#
-	# Fixed wing setup
-	#
-	if [ $VEHICLE_TYPE == fw ]
-	then
-		echo "[init] Vehicle type: FIXED WING"
-
-		if [ $MIXER == none ]
-		then
-			# Set default mixer for fixed wing if not defined
-			set MIXER FMU_AERT
-		fi
-
-		if [ $MAV_TYPE == none ]
-		then
-			# Use MAV_TYPE = 1 (fixed wing) if not defined
-			set MAV_TYPE 1
-		fi
-
-		param set MAV_TYPE $MAV_TYPE
-
-		# Load mixer and configure outputs
-		sh /etc/init.d/rc.interface
-
-		# Start standard fixedwing apps
-		if [ $LOAD_DEFAULT_APPS == yes ]
-		then
-			sh /etc/init.d/rc.fw_apps
-		fi
 	fi
 
 	#
@@ -574,6 +538,12 @@ then
 	# Start the navigator
 	#
 	navigator start
+
+
+	#
+	# Start the estimator
+	#
+	position_estimator_vicon start
 
 	#
 	# Generic setup (autostart ID not found)

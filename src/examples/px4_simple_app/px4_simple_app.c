@@ -47,6 +47,8 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 
+#include <uORB/topics/vehicle_command.h>
+
 __EXPORT int px4_simple_app_main(int argc, char *argv[]);
 
 int px4_simple_app_main(int argc, char *argv[])
@@ -54,17 +56,21 @@ int px4_simple_app_main(int argc, char *argv[])
 	printf("Hello Sky!\n");
 
 	/* subscribe to sensor_combined topic */
-	int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
-	orb_set_interval(sensor_sub_fd, 1000);
+	// int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
+	// orb_set_interval(sensor_combined_sub, 100);
+
+	int vehicel_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+	orb_set_interval(vehicel_command_sub, 100);
 
 	/* advertise attitude topic */
-	struct vehicle_attitude_s att;
-	memset(&att, 0, sizeof(att));
-	orb_advert_t att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
+	// struct vehicle_attitude_s att;
+	// memset(&att, 0, sizeof(att));
+	// orb_advert_t att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
 
 	/* one could wait for multiple topics with this technique, just using one here */
 	struct pollfd fds[] = {
-		{ .fd = sensor_sub_fd,   .events = POLLIN },
+		{ .fd = vehicel_command_sub,   .events = POLLIN }
+		// { .fd = sensor_combined_sub,   .events = POLLIN },
 		/* there could be more file descriptors here, in the form like:
 		 * { .fd = other_sub_fd,   .events = POLLIN },
 		 */
@@ -72,14 +78,14 @@ int px4_simple_app_main(int argc, char *argv[])
 
 	int error_counter = 0;
 
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < 600; i++) {
 		/* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
-		int poll_ret = poll(fds, 1, 1000);
-	 
+		int poll_ret = poll(fds, 1, 100);
+
 		/* handle the poll result */
 		if (poll_ret == 0) {
 			/* this means none of our providers is giving us data */
-			printf("[px4_simple_app] Got no data within a second\n");
+			// printf("[px4_simple_app] Got no data within a second\n");
 		} else if (poll_ret < 0) {
 			/* this is seriously bad - should be an emergency */
 			if (error_counter < 10 || error_counter % 50 == 0) {
@@ -89,22 +95,41 @@ int px4_simple_app_main(int argc, char *argv[])
 			}
 			error_counter++;
 		} else {
-	 
-			if (fds[0].revents & POLLIN) {
-				/* obtained data for the first file descriptor */
-				struct sensor_combined_s raw;
-				/* copy sensors raw data into local buffer */
-				orb_copy(ORB_ID(sensor_combined), sensor_sub_fd, &raw);
-				printf("[px4_simple_app] Accelerometer:\t%8.4f\t%8.4f\t%8.4f\n",
-					(double)raw.accelerometer_m_s2[0],
-					(double)raw.accelerometer_m_s2[1],
-					(double)raw.accelerometer_m_s2[2]);
 
-				/* set att and publish this information for other apps */
-				att.roll = raw.accelerometer_m_s2[0];
-				att.pitch = raw.accelerometer_m_s2[1];
-				att.yaw = raw.accelerometer_m_s2[2];
-				orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
+			if (fds[0].revents & POLLIN) {
+				struct vehicle_command_s raw;
+				orb_copy(ORB_ID(vehicle_command), vehicel_command_sub, &raw);
+				printf("%d-[px4_simple_app] Command:\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%d\t%d\t%d\t%d\t%d\t%d\n",
+				       i,
+				       (double)raw.param1,
+				       (double)raw.param2,
+				       (double)raw.param3,
+				       (double)raw.param4,
+				       (double)raw.param5,
+				       (double)raw.param6,
+				       (double)raw.param7,
+				       (int)raw.command,
+				       (uint8_t)raw.target_system,
+				       (uint8_t)raw.target_component,
+				       (uint8_t)raw.source_system,
+				       (uint8_t)raw.source_component,
+				       (uint8_t)raw.confirmation);
+
+
+				// /* obtained data for the first file descriptor */
+				// struct sensor_combined_s raw;
+				// /* copy sensors raw data into local buffer */
+				// orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &raw);
+				// printf("[px4_simple_app] Accelerometer:\t%8.4f\t%8.4f\t%8.4f\n",
+				// 	(double)raw.accelerometer_m_s2[0],
+				// 	(double)raw.accelerometer_m_s2[1],
+				// 	(double)raw.accelerometer_m_s2[2]);
+
+				// /* set att and publish this information for other apps */
+				// att.roll = raw.accelerometer_m_s2[0];
+				// att.pitch = raw.accelerometer_m_s2[1];
+				// att.yaw = raw.accelerometer_m_s2[2];
+				// orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
 			}
 			/* there could be more file descriptors here, in the form like:
 			 * if (fds[1..n].revents & POLLIN) {}
