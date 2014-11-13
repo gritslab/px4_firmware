@@ -59,18 +59,22 @@ int px4_simple_app_main(int argc, char *argv[])
 	// int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	// orb_set_interval(sensor_combined_sub, 100);
 
-	int vehicel_command_sub = orb_subscribe(ORB_ID(vehicle_command));
-	orb_set_interval(vehicel_command_sub, 100);
+	// int vehicel_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+	// orb_set_interval(vehicel_command_sub, 100);
 
 	/* advertise attitude topic */
 	// struct vehicle_attitude_s att;
 	// memset(&att, 0, sizeof(att));
 	// orb_advert_t att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
 
+	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	orb_set_interval(vehicle_attitude_sub, 100);
+
 	/* one could wait for multiple topics with this technique, just using one here */
 	struct pollfd fds[] = {
-		{ .fd = vehicel_command_sub,   .events = POLLIN }
+		// { .fd = vehicel_command_sub,   .events = POLLIN }
 		// { .fd = sensor_combined_sub,   .events = POLLIN },
+		{ .fd = vehicle_attitude_sub,   .events = POLLIN },
 		/* there could be more file descriptors here, in the form like:
 		 * { .fd = other_sub_fd,   .events = POLLIN },
 		 */
@@ -97,23 +101,31 @@ int px4_simple_app_main(int argc, char *argv[])
 		} else {
 
 			if (fds[0].revents & POLLIN) {
-				struct vehicle_command_s raw;
-				orb_copy(ORB_ID(vehicle_command), vehicel_command_sub, &raw);
-				printf("%d-[px4_simple_app] Command:\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%d\t%d\t%d\t%d\t%d\t%d\n",
+			// 	struct vehicle_command_s raw;
+			// 	orb_copy(ORB_ID(vehicle_command), vehicel_command_sub, &raw);
+			// 	printf("%d-[px4_simple_app] Command:\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%d\t%d\t%d\t%d\t%d\t%d\n",
+			// 	       i,
+			// 	       (double)raw.param1,
+			// 	       (double)raw.param2,
+			// 	       (double)raw.param3,
+			// 	       (double)raw.param4,
+			// 	       (double)raw.param5,
+			// 	       (double)raw.param6,
+			// 	       (double)raw.param7,
+			// 	       (int)raw.command,
+			// 	       (uint8_t)raw.target_system,
+			// 	       (uint8_t)raw.target_component,
+			// 	       (uint8_t)raw.source_system,
+			// 	       (uint8_t)raw.source_component,
+			// 	       (uint8_t)raw.confirmation);
+
+				struct vehicle_attitude_s att;
+				orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
+				printf("%d-[px4_simple_app] Attitude:\t%8.4f\t%8.4f\t%8.4f\n",
 				       i,
-				       (double)raw.param1,
-				       (double)raw.param2,
-				       (double)raw.param3,
-				       (double)raw.param4,
-				       (double)raw.param5,
-				       (double)raw.param6,
-				       (double)raw.param7,
-				       (int)raw.command,
-				       (uint8_t)raw.target_system,
-				       (uint8_t)raw.target_component,
-				       (uint8_t)raw.source_system,
-				       (uint8_t)raw.source_component,
-				       (uint8_t)raw.confirmation);
+				       (double)att.roll,
+				       (double)att.pitch,\
+				       (double)att.yaw);
 
 
 				// /* obtained data for the first file descriptor */

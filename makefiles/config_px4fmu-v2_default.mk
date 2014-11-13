@@ -81,11 +81,12 @@ MODULES     += modules/echo_msgs
 #
 # Estimation modules (EKF/ SO3 / other filters)
 #
-MODULES     += modules/attitude_estimator_ekf
+# MODULES     += modules/attitude_estimator_ekf
 # MODULES		+= modules/attitude_estimator_so3
 # MODULES		+= modules/ekf_att_pos_estimator
 # MODULES		+= modules/position_estimator_inav
 # MODULES		+= examples/flow_position_estimator
+MODULES     += modules/attitude_estimator_vicon
 MODULES     += modules/position_estimator_vicon
 
 #
@@ -139,7 +140,7 @@ MODULES		+= lib/launchdetection
 #MODULES		+= examples/math_demo
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/hello_sky
-# MODULES		+= examples/px4_simple_app
+MODULES		+= examples/px4_simple_app
 
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/daemon

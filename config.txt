@@ -1,0 +1,25 @@
+#!nsh
+#
+# PX4FMU startup config script.
+
+#
+# Set parameter values
+#
+set HIL no
+set VEHICLE_TYPE mc
+set MIXER FMU_quad_x
+set OUTPUT_MODE fmu
+set PWM_OUTPUTS none
+set PWM_RATE none
+set PWM_DISARMED none
+set PWM_MIN none
+set PWM_MAX none
+set MKBLCTRL_MODE none
+set FMU_MODE pwm
+set MAVLINK_FLAGS default
+set EXIT_ON_END no
+set MAV_TYPE none
+set LOAD_DEFAULT_APPS yes
+set GPS no
+set GPS_FAKE no
+set FAILSAFE none

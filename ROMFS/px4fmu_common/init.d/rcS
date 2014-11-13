@@ -539,12 +539,6 @@ then
 	#
 	navigator start
 
-
-	#
-	# Start the estimator
-	#
-	position_estimator_vicon start
-
 	#
 	# Generic setup (autostart ID not found)
 	#
