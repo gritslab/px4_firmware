@@ -246,6 +246,9 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	mavlink_command_long_t cmd_mavlink;
 	mavlink_msg_command_long_decode(msg, &cmd_mavlink);
 
+	printf("mavlink_system.sysid: %d\n",mavlink_system.sysid);
+	printf("mavlink_system.compid: %d\n",mavlink_system.compid);
+
 	if (cmd_mavlink.target_system == mavlink_system.sysid && ((cmd_mavlink.target_component == mavlink_system.compid)
 			|| (cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
 		//check for MAVLINK terminate command
@@ -260,11 +263,23 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 		} else {
 
-			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-				warnx("ignoring CMD spoofed with same SYS/COMP (%d/%d) ID",
-				      mavlink_system.sysid, mavlink_system.compid);
-				return;
-			}
+			// if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
+			// 	warnx("ignoring CMD spoofed with same SYS/COMP (%d/%d) ID",
+			// 	      mavlink_system.sysid, mavlink_system.compid);
+			// 	return;
+			// }
+
+			printf("Received MavlinkStreamCommandLong\n");
+			printf("\tcommand: %d\n", cmd_mavlink.command);
+			printf("\tparam1: %8.4f\n", (double)cmd_mavlink.param1);
+			printf("\tparam2: %8.4f\n", (double)cmd_mavlink.param2);
+			printf("\tparam3: %8.4f\n", (double)cmd_mavlink.param3);
+			printf("\tparam4: %8.4f\n", (double)cmd_mavlink.param4);
+			printf("\tparam5: %8.4f\n", (double)cmd_mavlink.param5);
+			printf("\tparam6: %8.4f\n", (double)cmd_mavlink.param6);
+			printf("\tparam7: %8.4f\n", (double)cmd_mavlink.param7);
+			printf("\ttarget_system: %d\n", cmd_mavlink.target_system);
+			printf("\ttarget_component: %d\n", cmd_mavlink.target_component);
 
 			struct vehicle_command_s vcmd;
 			memset(&vcmd, 0, sizeof(vcmd));
@@ -302,6 +317,9 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	mavlink_command_int_t cmd_mavlink;
 	mavlink_msg_command_int_decode(msg, &cmd_mavlink);
 
+	printf("mavlink_system.sysid: %d\n",mavlink_system.sysid);
+	printf("mavlink_system.compid: %d\n",mavlink_system.compid);
+
 	if (cmd_mavlink.target_system == mavlink_system.sysid && ((cmd_mavlink.target_component == mavlink_system.compid)
 			|| (cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
 		//check for MAVLINK terminate command
@@ -316,11 +334,20 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 
 		} else {
 
-			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-				warnx("ignoring CMD spoofed with same SYS/COMP (%d/%d) ID",
-				      mavlink_system.sysid, mavlink_system.compid);
-				return;
-			}
+			// if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
+			// 	warnx("ignoring CMD spoofed with same SYS/COMP (%d/%d) ID",
+			// 	      mavlink_system.sysid, mavlink_system.compid);
+			// 	return;
+			// }
+
+			printf("Received MavlinkStreamCommandInt\n");
+			printf("\tcommand: %d\n", cmd_mavlink.command);
+			printf("\tparam1: %8.4f\n", (double)cmd_mavlink.param1);
+			printf("\tparam2: %8.4f\n", (double)cmd_mavlink.param2);
+			printf("\tparam3: %8.4f\n", (double)cmd_mavlink.param3);
+			printf("\tparam4: %8.4f\n", (double)cmd_mavlink.param4);
+			printf("\ttarget_system: %d\n", cmd_mavlink.target_system);
+			printf("\ttarget_component: %d\n", cmd_mavlink.target_component);
 
 			struct vehicle_command_s vcmd;
 			memset(&vcmd, 0, sizeof(vcmd));
@@ -467,6 +494,15 @@ MavlinkReceiver::handle_message_vicon_position_estimate(mavlink_message_t *msg)
 
 	struct vehicle_vicon_position_s vicon_position;
 	memset(&vicon_position, 0, sizeof(vicon_position));
+
+	printf("Received MavlinkStreamViconPositionEstimate\n");
+	printf("\tx: %8.4f\n\ty: %8.4f\n\tz: %8.4f\n\troll: %8.4f\n\tpitch: %8.4f\n\tyaw: %8.4f\n",
+	                  (double)pos.x,
+	                  (double)pos.y,
+	                  (double)pos.z,
+	                  (double)pos.roll,
+	                  (double)pos.pitch,
+	                  (double)pos.yaw);
 
 	vicon_position.timestamp = hrt_absolute_time();
 	vicon_position.x = pos.x;

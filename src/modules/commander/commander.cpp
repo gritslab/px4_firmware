@@ -492,6 +492,8 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			// Adhere to MAVLink specs, but base on knowledge that these fundamentally encode ints
 			// for logic state parameters
 
+			warnx("Received VEHICLE_CMD_COMPONENT_ARM_DISARM");
+
 			if (static_cast<int>(cmd->param1 + 0.5f) != 0 && static_cast<int>(cmd->param1 + 0.5f) != 1) {
 				mavlink_log_critical(mavlink_fd, "Unsupported ARM_DISARM param: %.3f", (double)cmd->param1);
 

@@ -114,12 +114,15 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 	arming_state_t current_arming_state = status->arming_state;
 	bool feedback_provided = false;
 
+	printf("In arming_state_transition\n");
+
 	/* only check transition if the new state is actually different from the current one */
 	if (new_arming_state == current_arming_state) {
 		ret = TRANSITION_NOT_CHANGED;
 
 	} else {
 
+		printf("In different arming state condition\n");
 		/*
 		 * Get sensing state if necessary
 		 */
@@ -129,6 +132,8 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 		if (fRunPreArmChecks && new_arming_state == ARMING_STATE_ARMED) {
 			prearm_ret = prearm_check(status, mavlink_fd);
 		}
+
+		printf("In pass prearm_check: %d\n", prearm_ret);
 
 		/*
 		 * Perform an atomic state update
@@ -147,22 +152,29 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 		bool valid_transition = arming_transitions[new_arming_state][status->arming_state];
 
 		if (valid_transition) {
+			printf("In valid_transition\n");
+
 			// We have a good transition. Now perform any secondary validation.
 			if (new_arming_state == ARMING_STATE_ARMED) {
+				printf("In ARMING_STATE_ARMED\n");
 
 				//      Do not perform pre-arm checks if coming from in air restore
 				//      Allow if HIL_STATE_ON
 				if (status->arming_state != ARMING_STATE_IN_AIR_RESTORE &&
 					status->hil_state == HIL_STATE_OFF) {
 
+					printf("In HIL_STATE_OFF\n");
+
 					// Fail transition if pre-arm check fails
 					if (prearm_ret) {
+						printf("In prearm_ret\n");
 						/* the prearm check already prints the reject reason */
 						feedback_provided = true;
 						valid_transition = false;
 
 					// Fail transition if we need safety switch press
 					} else if (safety->safety_switch_available && !safety->safety_off) {
+						printf("In not prearm_ret\n");
 
 						mavlink_log_critical(mavlink_fd, "NOT ARMING: Press safety switch first!");
 						feedback_provided = true;
@@ -172,8 +184,10 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 					// Perform power checks only if circuit breaker is not
 					// engaged for these checks
 					if (!status->circuit_breaker_engaged_power_check) {
+						printf("In  circuit_breaker_engaged_power_check\n");
 						// Fail transition if power is not good
 						if (!status->condition_power_input_valid) {
+							printf("In  condition_power_input_valid\n");
 
 							mavlink_log_critical(mavlink_fd, "NOT ARMING: Connect power module.");
 							feedback_provided = true;
@@ -183,15 +197,19 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 						// Fail transition if power levels on the avionics rail
 						// are measured but are insufficient
 						if (status->condition_power_input_valid && (status->avionics_power_rail_voltage > 0.0f)) {
+							printf("In  condition_power_input_valid\n");
 							// Check avionics rail voltages
 							if (status->avionics_power_rail_voltage < 4.75f) {
+								printf("In  avionics_power_rail_voltage < 4.75f\n");
 								mavlink_log_critical(mavlink_fd, "NOT ARMING: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
 								feedback_provided = true;
 								valid_transition = false;
 							} else if (status->avionics_power_rail_voltage < 4.9f) {
+								printf("In  avionics_power_rail_voltage < 4.9f\n");
 								mavlink_log_critical(mavlink_fd, "CAUTION: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
 								feedback_provided = true;
 							} else if (status->avionics_power_rail_voltage > 5.4f) {
+								printf("In  avionics_power_rail_voltage < 5.4f\n");
 								mavlink_log_critical(mavlink_fd, "CAUTION: Avionics power high: %6.2f Volt", (double)status->avionics_power_rail_voltage);
 								feedback_provided = true;
 							}
@@ -201,6 +219,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 				}
 
 			} else if (new_arming_state == ARMING_STATE_STANDBY && status->arming_state == ARMING_STATE_ARMED_ERROR) {
+				printf("In ARMING_STATE_STANDBY\n");
 				new_arming_state = ARMING_STATE_STANDBY_ERROR;
 			}
 		}
@@ -652,17 +671,21 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 	int fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
+		warnx("ARM FAIL: ACCEL SENSOR MISSING");
 		mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL SENSOR MISSING");
 		failed = true;
-		goto system_eval;
+		close(fd);
+		return (failed);
 	}
 
 	ret = ioctl(fd, ACCELIOCSELFTEST, 0);
 
 	if (ret != OK) {
+		warnx("ARM FAIL: ACCEL CALIBRATION");
 		mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL CALIBRATION");
 		failed = true;
-		goto system_eval;
+		close(fd);
+		return (failed);
 	}
 
 	/* check measurement result range */
@@ -674,16 +697,20 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 		float accel_magnitude = sqrtf(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
 
 		if (accel_magnitude < 4.0f || accel_magnitude > 15.0f /* m/s^2 */) {
+			warnx("ARM FAIL: ACCEL RANGE, hold still");
 			mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL RANGE, hold still");
 			/* this is frickin' fatal */
 			failed = true;
-			goto system_eval;
+			close(fd);
+			return (failed);
 		}
 	} else {
+		warnx("ARM FAIL: ACCEL READ");
 		mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL READ");
 		/* this is frickin' fatal */
 		failed = true;
-		goto system_eval;
+		close(fd);
+		return (failed);
 	}
 
 	/* Perform airspeed check only if circuit breaker is not
@@ -697,18 +724,19 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 
 		if ((ret = orb_copy(ORB_ID(airspeed), fd, &airspeed)) ||
 			(hrt_elapsed_time(&airspeed.timestamp) > (50 * 1000))) {
+			warnx("ARM FAIL: AIRSPEED SENSOR MISSING");
 			mavlink_log_critical(mavlink_fd, "ARM FAIL: AIRSPEED SENSOR MISSING");
 			failed = true;
-			goto system_eval;
+			close(fd);
+			return (failed);
 		}
 
 		if (fabsf(airspeed.indicated_airspeed_m_s > 6.0f)) {
+			warnx("AIRSPEED WARNING: WIND OR CALIBRATION MISSING");
 			mavlink_log_critical(mavlink_fd, "AIRSPEED WARNING: WIND OR CALIBRATION MISSING");
 			// XXX do not make this fatal yet
 		}
 	}
-
-system_eval:
-	close(fd);
-	return (failed);
+close(fd);
+return (failed);
 }
