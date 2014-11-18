@@ -68,6 +68,7 @@ private:
     //--------------------------------------------------------------------------
     void m_setup_orb_subscribers();
     void m_close_orb_subscribers();
+    void m_init_finite_state();
     void m_set_led_based_on_state();
 };
 

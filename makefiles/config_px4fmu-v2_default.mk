@@ -140,7 +140,7 @@ MODULES		+= lib/launchdetection
 #MODULES		+= examples/math_demo
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/hello_sky
-MODULES		+= examples/px4_simple_app
+# MODULES		+= examples/px4_simple_app
 
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/daemon
@@ -149,10 +149,6 @@ MODULES		+= examples/px4_simple_app
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/debug_values
 #MODULES		+= examples/px4_mavlink_debug
-
-# Tutorial code from
-# https://pixhawk.ethz.ch/px4/dev/example_fixedwing_control
-#MODULES			+= examples/fixedwing_control
 
 # Hardware test
 #MODULES			+= examples/hwtest

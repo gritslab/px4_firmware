@@ -612,7 +612,7 @@ BlinkM::led()
 
 					if(actuator_armed.armed == false) {
 						/* system not armed */
-						if(safety.safety_off){
+						if(safety.safety_mode){
 							led_color_1 = LED_ORANGE;
 							led_color_2 = LED_ORANGE;
 							led_color_3 = LED_ORANGE;

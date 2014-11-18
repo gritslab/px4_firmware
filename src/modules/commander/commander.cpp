@@ -49,7 +49,13 @@ Commander::~Commander()
 //------------------------------------------------------------------------------
 void Commander::init()
 {
+    // Init subscriptions
     m_setup_orb_subscribers();
+
+    // Init finite state
+    m_init_finite_state();
+
+    // Init led
     led.init();
 }
 
@@ -57,6 +63,7 @@ void Commander::deinit()
 {
     m_close_orb_subscribers();
 
+    led.set_color(RGBLED_COLOR_OFF);
     led.set_mode(RGBLED_MODE_OFF);
     led.deinit();
 }
@@ -70,13 +77,17 @@ void Commander::update()
 {
     bool updated;
 
+    // Safety
     orb_check(m_safety_sub, &updated);
     if (updated) {
+        bool safety_mode_prev = m_safety.safety_mode;
         orb_copy(ORB_ID(safety), m_safety_sub, &m_safety);
-        if (m_safety.safety_off) {
-            finite_state[ARM_STATE] == DISARMED;
-        } else {
-            finite_state[ARM_STATE] == SAFETY;
+        if (m_safety.safety_mode != safety_mode_prev) {
+            if (m_safety.safety_mode) {
+                finite_state[ARM_STATE] = SAFETY;
+            } else {
+                finite_state[ARM_STATE] = DISARMED;
+            }
         }
     }
 
@@ -101,10 +112,8 @@ int Commander::toggle_arm()
 void Commander::m_setup_orb_subscribers()
 {
     // Safety topic
-    int m_safety_sub = orb_subscribe(ORB_ID(safety));
+    m_safety_sub = orb_subscribe(ORB_ID(safety));
     memset(&m_safety, 0, sizeof(m_safety));
-    m_safety.safety_switch_available = false;
-    m_safety.safety_off = false;
 }
 
 void Commander::m_close_orb_subscribers()
@@ -112,10 +121,26 @@ void Commander::m_close_orb_subscribers()
     close(m_safety_sub);
 }
 
+void Commander::m_init_finite_state()
+{
+    bool updated;
+
+    // Safety
+    orb_check(m_safety_sub, &updated);
+    if (updated) {
+        orb_copy(ORB_ID(safety), m_safety_sub, &m_safety);
+        if (m_safety.safety_mode) {
+            finite_state[ARM_STATE] = SAFETY;
+        } else {
+            finite_state[ARM_STATE] = DISARMED;
+        }
+    }
+}
+
 void Commander::m_set_led_based_on_state()
 {
     if (finite_state[ARM_STATE] == SAFETY) {
-        led.set_color(RGBLED_COLOR_BLUE);
+        led.set_color(RGBLED_COLOR_RED);
         led.set_mode(RGBLED_MODE_BLINK_NORMAL);
     } else if (finite_state[ARM_STATE] == DISARMED) {
         led.set_color(RGBLED_COLOR_GREEN);

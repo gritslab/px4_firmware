@@ -274,9 +274,9 @@ void print_vehicle_status(struct vehicle_status_s vehicle_status_data)
 
 void print_safety(struct safety_s safety_data)
 {
-    printf("safety:\n\tsafety_switch_available: %d\n\tsafety_off: %d\n",
+    printf("safety:\n\tsafety_switch_available: %d\n\tsafety_mode: %d\n",
            safety_data.safety_switch_available,
-           safety_data.safety_off);
+           safety_data.safety_mode);
 }
 
 void print_rc_channels(struct rc_channels_s rc_channels_data)

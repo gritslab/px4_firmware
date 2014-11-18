@@ -97,14 +97,15 @@ then
 	#
 	# Start system state indicator
 	#
-	if rgbled start
-	then
-	else
-		if blinkm start
-		then
-			blinkm systemstate
-		fi
-	fi
+	rgbled start
+	# if rgbled start
+	# then
+	# else
+	# 	if blinkm start
+	# 	then
+	# 		blinkm systemstate
+	# 	fi
+	# fi
 
 	if pca8574 start
 	then

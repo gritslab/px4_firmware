@@ -1377,11 +1377,11 @@ PX4IO::io_handle_status(uint16_t status)
 	safety.timestamp = hrt_absolute_time();
 
 	if (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
-		safety.safety_off = true;
+		safety.safety_mode = false;
 		safety.safety_switch_available = true;
 
 	} else {
-		safety.safety_off = false;
+		safety.safety_mode = true;
 		safety.safety_switch_available = true;
 	}
 
