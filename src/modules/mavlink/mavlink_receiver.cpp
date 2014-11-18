@@ -73,7 +73,7 @@
 #include <systemlib/err.h>
 #include <systemlib/airspeed.h>
 #include <mavlink/mavlink_log.h>
-#include <commander/px4_custom_mode.h>
+// #include <commander/px4_custom_mode.h> // TODO: remove or fix
 #include <geo/geo.h>
 
 __BEGIN_DECLS
@@ -455,35 +455,36 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 {
-	mavlink_set_mode_t new_mode;
-	mavlink_msg_set_mode_decode(msg, &new_mode);
+	// TODO: fix
+	// mavlink_set_mode_t new_mode;
+	// mavlink_msg_set_mode_decode(msg, &new_mode);
 
-	struct vehicle_command_s vcmd;
-	memset(&vcmd, 0, sizeof(vcmd));
+	// struct vehicle_command_s vcmd;
+	// memset(&vcmd, 0, sizeof(vcmd));
 
-	union px4_custom_mode custom_mode;
-	custom_mode.data = new_mode.custom_mode;
-	/* copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
-	vcmd.param1 = new_mode.base_mode;
-	vcmd.param2 = custom_mode.main_mode;
-	vcmd.param3 = 0;
-	vcmd.param4 = 0;
-	vcmd.param5 = 0;
-	vcmd.param6 = 0;
-	vcmd.param7 = 0;
-	vcmd.command = VEHICLE_CMD_DO_SET_MODE;
-	vcmd.target_system = new_mode.target_system;
-	vcmd.target_component = MAV_COMP_ID_ALL;
-	vcmd.source_system = msg->sysid;
-	vcmd.source_component = msg->compid;
-	vcmd.confirmation = 1;
+	// union px4_custom_mode custom_mode;
+	// custom_mode.data = new_mode.custom_mode;
+	// /* copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
+	// vcmd.param1 = new_mode.base_mode;
+	// vcmd.param2 = custom_mode.main_mode;
+	// vcmd.param3 = 0;
+	// vcmd.param4 = 0;
+	// vcmd.param5 = 0;
+	// vcmd.param6 = 0;
+	// vcmd.param7 = 0;
+	// vcmd.command = VEHICLE_CMD_DO_SET_MODE;
+	// vcmd.target_system = new_mode.target_system;
+	// vcmd.target_component = MAV_COMP_ID_ALL;
+	// vcmd.source_system = msg->sysid;
+	// vcmd.source_component = msg->compid;
+	// vcmd.confirmation = 1;
 
-	if (_cmd_pub < 0) {
-		_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+	// if (_cmd_pub < 0) {
+	// 	_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
 
-	} else {
-		orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
-	}
+	// } else {
+	// 	orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
+	// }
 }
 
 void
