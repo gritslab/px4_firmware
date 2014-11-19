@@ -10,6 +10,7 @@
 #include <nuttx/sched.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
@@ -19,6 +20,7 @@
 #include <uORB/topics/safety.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/actuator_armed.h>
 
 
 //------------------------------------------------------------------------------
@@ -33,6 +35,7 @@ static bool vehicle_status_flag = false;
 static bool safety_flag = false;
 static bool rc_channels_flag = false;
 static bool vehicle_command_flag = false;
+static bool actuator_armed_flag = false;
 
 //------------------------------------------------------------------------------
 // Function Definitions
@@ -46,6 +49,7 @@ void print_vehicle_status(struct vehicle_status_s vehicle_status_data);
 void print_safety(struct safety_s safety_data);
 void print_rc_channels(struct rc_channels_s rc_channels_data);
 void print_vehicle_command(struct vehicle_command_s vehicle_command_data);
+void print_actuator_armed(struct actuator_armed_s actuator_armed_data);
 
 
 //------------------------------------------------------------------------------
@@ -122,6 +126,12 @@ int echo_msgs_main(int argc, char *argv[])
             warnx("\tvehicle_command: off");
         }
 
+        if (actuator_armed_flag) {
+            warnx("\tactuator_armed: on");
+        } else {
+            warnx("\tactuator_armed: off");
+        }
+
         exit(0);
     }
 
@@ -180,6 +190,17 @@ int echo_msgs_main(int argc, char *argv[])
         exit(0);
     }
 
+    if (!strcmp(argv[1], "actuator_armed")) {
+        if (actuator_armed_flag) {
+            actuator_armed_flag = false;
+            warnx("\tactuator_armed: off");
+        } else {
+            actuator_armed_flag = true;
+            warnx("\tactuator_armed: on");
+        }
+        exit(0);
+    }
+
     usage("unrecognized command");
     exit(1);
 }
@@ -209,6 +230,10 @@ int echo_msgs_thread_main(int argc, char *argv[])
     int vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
     struct vehicle_command_s vehicle_command_data;
     memset(&vehicle_command_data, 0, sizeof(vehicle_command_data));
+
+    int actuator_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+    struct actuator_armed_s actuator_armed_data;
+    memset(&actuator_armed_data, 0, sizeof(actuator_armed_data));
 
     bool updated = false;
     while (!thread_should_exit) {
@@ -241,6 +266,12 @@ int echo_msgs_thread_main(int argc, char *argv[])
         if (updated & vehicle_command_flag) {
             orb_copy(ORB_ID(vehicle_command), vehicle_command_sub, &vehicle_command_data);
             print_vehicle_command(vehicle_command_data);
+        }
+
+        orb_check(actuator_armed_sub, &updated);
+        if (updated & actuator_armed_flag) {
+            orb_copy(ORB_ID(actuator_armed), actuator_armed_sub, &actuator_armed_data);
+            print_actuator_armed(actuator_armed_data);
         }
 
         usleep(500000);
@@ -303,4 +334,13 @@ void print_vehicle_command(struct vehicle_command_s vehicle_command_data)
     printf("\ttarget_component: %d\n", vehicle_command_data.target_component);
     printf("\tsource_system: %d\n", vehicle_command_data.source_system);
     printf("\tsource_component: %d\n", vehicle_command_data.source_component);
+}
+
+void print_actuator_armed(struct actuator_armed_s actuator_armed_data)
+{
+    printf("actuator_armed:\n");
+    printf("\tarmed: %d\n", actuator_armed_data.armed);
+    printf("\tready_to_arm: %d\n", actuator_armed_data.ready_to_arm);
+    printf("\tlockdown: %d\n", actuator_armed_data.lockdown);
+    printf("\tforce_failsafe: %d\n", actuator_armed_data.force_failsafe);
 }
