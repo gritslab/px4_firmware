@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include <uORB/topics/safety.h>
+#include <uORB/topics/actuator_armed.h>
 
 #include "finite_state.h"
 #include "led.h"
@@ -58,18 +59,23 @@ private:
     //--------------------------------------------------------------------------
     // Private Member Variables
     //--------------------------------------------------------------------------
-
     // Subscription variables
     int m_safety_sub;
     struct safety_s m_safety;
 
+    // Publisher variables
+    orb_advert_t m_actuator_armed_pub;
+    struct actuator_armed_s m_actuator_armed;
+
     //--------------------------------------------------------------------------
     // Private Methods
     //--------------------------------------------------------------------------
-    void m_setup_orb_subscribers();
+    void m_init_orb_subscribers();
     void m_close_orb_subscribers();
+    void m_init_orb_publishers();
+    void m_orb_publish();
     void m_init_finite_state();
-    void m_set_led_based_on_state();
+    void m_update_vars_based_on_state();
 };
 
 #endif

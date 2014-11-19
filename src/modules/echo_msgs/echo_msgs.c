@@ -71,7 +71,7 @@ int echo_msgs_main(int argc, char *argv[])
         if (thread_running) {
             warnx("daemon already running\n");
             /* this is not an error */
-            exit(0);
+            return 0;
         }
 
         thread_should_exit = false;
@@ -81,12 +81,12 @@ int echo_msgs_main(int argc, char *argv[])
                      2000,
                      echo_msgs_thread_main,
                      (argv) ? (const char **)&argv[2] : (const char **)NULL);
-        exit(0);
+        return 0;
     }
 
     if (!strcmp(argv[1], "stop")) {
         thread_should_exit = true;
-        exit(0);
+        return 0;
     }
 
     if (!strcmp(argv[1], "status")) {
@@ -132,7 +132,7 @@ int echo_msgs_main(int argc, char *argv[])
             warnx("\tactuator_armed: off");
         }
 
-        exit(0);
+        return 0;
     }
 
     if (!strcmp(argv[1], "vehicle_vicon_position")) {
@@ -143,7 +143,7 @@ int echo_msgs_main(int argc, char *argv[])
             vehicle_vicon_position_flag = true;
             warnx("\tvehicle_vicon_position: on");
         }
-        exit(0);
+        return 0;
     }
 
     if (!strcmp(argv[1], "vehicle_status")) {
@@ -154,7 +154,7 @@ int echo_msgs_main(int argc, char *argv[])
             vehicle_status_flag = true;
             warnx("\tvehicle_status: on");
         }
-        exit(0);
+        return 0;
     }
 
     if (!strcmp(argv[1], "safety")) {
@@ -165,7 +165,7 @@ int echo_msgs_main(int argc, char *argv[])
             safety_flag = true;
             warnx("\tsafety: on");
         }
-        exit(0);
+        return 0;
     }
 
     if (!strcmp(argv[1], "rc_channels")) {
@@ -176,7 +176,7 @@ int echo_msgs_main(int argc, char *argv[])
             rc_channels_flag = true;
             warnx("\trc_channels: on");
         }
-        exit(0);
+        return 0;
     }
 
     if (!strcmp(argv[1], "vehicle_command")) {
@@ -187,7 +187,7 @@ int echo_msgs_main(int argc, char *argv[])
             vehicle_command_flag = true;
             warnx("\tvehicle_command: on");
         }
-        exit(0);
+        return 0;
     }
 
     if (!strcmp(argv[1], "actuator_armed")) {
@@ -198,11 +198,11 @@ int echo_msgs_main(int argc, char *argv[])
             actuator_armed_flag = true;
             warnx("\tactuator_armed: on");
         }
-        exit(0);
+        return 0;
     }
 
     usage("unrecognized command");
-    exit(1);
+    return 1;
 }
 
 int echo_msgs_thread_main(int argc, char *argv[])
@@ -339,6 +339,7 @@ void print_vehicle_command(struct vehicle_command_s vehicle_command_data)
 void print_actuator_armed(struct actuator_armed_s actuator_armed_data)
 {
     printf("actuator_armed:\n");
+    printf("\ttimestamp: %d\n", actuator_armed_data.timestamp);
     printf("\tarmed: %d\n", actuator_armed_data.armed);
     printf("\tready_to_arm: %d\n", actuator_armed_data.ready_to_arm);
     printf("\tlockdown: %d\n", actuator_armed_data.lockdown);

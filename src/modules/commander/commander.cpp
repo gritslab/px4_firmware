@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <systemlib/err.h>
+#include <drivers/drv_hrt.h>
 
 //------------------------------------------------------------------------------
 // Namespaces
@@ -50,7 +51,10 @@ Commander::~Commander()
 void Commander::init()
 {
     // Init subscriptions
-    m_setup_orb_subscribers();
+    m_init_orb_subscribers();
+
+    // Init publishers
+    m_init_orb_publishers();
 
     // Init finite state
     m_init_finite_state();
@@ -91,7 +95,9 @@ void Commander::update()
         }
     }
 
-    m_set_led_based_on_state();
+    m_update_vars_based_on_state();
+    m_orb_publish();
+
 }
 
 int Commander::toggle_arm()
@@ -109,7 +115,7 @@ int Commander::toggle_arm()
 //------------------------------------------------------------------------------
 // Private Methods
 //------------------------------------------------------------------------------
-void Commander::m_setup_orb_subscribers()
+void Commander::m_init_orb_subscribers()
 {
     // Safety topic
     m_safety_sub = orb_subscribe(ORB_ID(safety));
@@ -119,6 +125,18 @@ void Commander::m_setup_orb_subscribers()
 void Commander::m_close_orb_subscribers()
 {
     close(m_safety_sub);
+}
+
+void Commander::m_init_orb_publishers()
+{
+    m_actuator_armed_pub = orb_advertise(ORB_ID(actuator_armed),
+                                         &m_actuator_armed);
+    memset(&m_actuator_armed, 0, sizeof(m_actuator_armed));
+}
+
+void Commander::m_orb_publish()
+{
+    orb_publish(ORB_ID(actuator_armed), m_actuator_armed_pub, &m_actuator_armed);
 }
 
 void Commander::m_init_finite_state()
@@ -137,8 +155,22 @@ void Commander::m_init_finite_state()
     }
 }
 
-void Commander::m_set_led_based_on_state()
+void Commander::m_update_vars_based_on_state()
 {
+    // m_actuator_armed
+    m_actuator_armed.timestamp = hrt_absolute_time();
+    if (finite_state[ARM_STATE] == SAFETY) {
+        m_actuator_armed.armed = false;
+        m_actuator_armed.ready_to_arm = false;
+    } else if (finite_state[ARM_STATE] == DISARMED) {
+        m_actuator_armed.armed = false;
+        m_actuator_armed.ready_to_arm = true;
+    } else {
+        m_actuator_armed.armed = true;
+        m_actuator_armed.ready_to_arm = true;
+    }
+
+    // led
     if (finite_state[ARM_STATE] == SAFETY) {
         led.set_color(RGBLED_COLOR_RED);
         led.set_mode(RGBLED_MODE_BLINK_NORMAL);
