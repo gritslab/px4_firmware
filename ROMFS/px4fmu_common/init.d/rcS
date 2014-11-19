@@ -97,15 +97,14 @@ then
 	#
 	# Start system state indicator
 	#
-	rgbled start
-	# if rgbled start
-	# then
-	# else
-	# 	if blinkm start
-	# 	then
-	# 		blinkm systemstate
-	# 	fi
-	# fi
+	if rgbled start
+	then
+	else
+		if blinkm start
+		then
+			blinkm systemstate
+		fi
+	fi
 
 	if pca8574 start
 	then
@@ -114,10 +113,13 @@ then
 	#
 	# Set default values
 	#
+	set SYS_AUTOSTART 1 # also defined in system_params.c
+	set SYS_AUTOCONFIG 4010 # DJI 330 also defined in system_params.c
+	set SYS_UEE_IO 1 # also defined in system_params.c
 	set HIL no
-	set VEHICLE_TYPE none
-	set MIXER none
-	set OUTPUT_MODE none
+	set VEHICLE_TYPE mc
+	set MIXER FMU_quad_x
+	set OUTPUT_MODE io
 	set PWM_OUTPUTS none
 	set PWM_RATE none
 	set PWM_DISARMED none
@@ -292,7 +294,7 @@ then
 	#
 	# Start the Commander (needs to be this early for in-air-restarts)
 	#
-	commander start
+	# commander start
 
 	#
 	# Start primary output
@@ -538,7 +540,7 @@ then
 	#
 	# Start the navigator
 	#
-	navigator start
+	# navigator start
 
 	#
 	# Generic setup (autostart ID not found)
