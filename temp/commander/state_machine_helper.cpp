@@ -114,7 +114,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 	arming_state_t current_arming_state = status->arming_state;
 	bool feedback_provided = false;
 
-	printf("In arming_state_transition\n");
+	printf("(state_machine_helper) In arming_state_transition\n");
 
 	/* only check transition if the new state is actually different from the current one */
 	if (new_arming_state == current_arming_state) {
@@ -122,59 +122,53 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 
 	} else {
 
-		printf("In different arming state condition\n");
+		printf("(state_machine_helper) In different arming state condition\n");
 		/*
 		 * Get sensing state if necessary
 		 */
-		int prearm_ret = OK;
+		int prearm_ret;
 
 		/* only perform the check if we have to */
 		if (fRunPreArmChecks && new_arming_state == ARMING_STATE_ARMED) {
 			prearm_ret = prearm_check(status, mavlink_fd);
 		}
 
-		printf("In pass prearm_check: %d\n", prearm_ret);
+		if (prearm_check == OK) {
+			printf("(state_machine_helper) In pass prearm_check passed: %d\n", prearm_ret);
+		} else {
+			printf("(state_machine_helper) In pass prearm_check failed: %d\n", prearm_ret);
+		}
 
 		/*
 		 * Perform an atomic state update
 		 */
 		irqstate_t flags = irqsave();
 
-		/* enforce lockdown in HIL */
-		if (status->hil_state == HIL_STATE_ON) {
-			armed->lockdown = true;
-
-		} else {
-			armed->lockdown = false;
-		}
-
 		// Check that we have a valid state transition
 		bool valid_transition = arming_transitions[new_arming_state][status->arming_state];
 
 		if (valid_transition) {
-			printf("In valid_transition\n");
+			printf("(state_machine_helper) In valid_transition\n");
 
 			// We have a good transition. Now perform any secondary validation.
 			if (new_arming_state == ARMING_STATE_ARMED) {
-				printf("In ARMING_STATE_ARMED\n");
+				printf("(state_machine_helper) In ARMING_STATE_ARMED\n");
 
 				//      Do not perform pre-arm checks if coming from in air restore
 				//      Allow if HIL_STATE_ON
-				if (status->arming_state != ARMING_STATE_IN_AIR_RESTORE &&
-					status->hil_state == HIL_STATE_OFF) {
+				if (status->arming_state != ARMING_STATE_IN_AIR_RESTORE) {
 
-					printf("In HIL_STATE_OFF\n");
 
 					// Fail transition if pre-arm check fails
 					if (prearm_ret) {
-						printf("In prearm_ret\n");
+						printf("(state_machine_helper) In prearm check failed\n");
 						/* the prearm check already prints the reject reason */
 						feedback_provided = true;
 						valid_transition = false;
 
 					// Fail transition if we need safety switch press
 					} else if (safety->safety_switch_available && !safety->safety_off) {
-						printf("In not prearm_ret\n");
+						printf("(state_machine_helper) In safety switch not pressed\n");
 
 						mavlink_log_critical(mavlink_fd, "NOT ARMING: Press safety switch first!");
 						feedback_provided = true;
@@ -184,10 +178,10 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 					// Perform power checks only if circuit breaker is not
 					// engaged for these checks
 					if (!status->circuit_breaker_engaged_power_check) {
-						printf("In  circuit_breaker_engaged_power_check\n");
+						printf("(state_machine_helper) In  circuit_breaker_engaged_power_check\n");
 						// Fail transition if power is not good
 						if (!status->condition_power_input_valid) {
-							printf("In  condition_power_input_valid\n");
+							printf("(state_machine_helper) In power module not connected\n");
 
 							mavlink_log_critical(mavlink_fd, "NOT ARMING: Connect power module.");
 							feedback_provided = true;
@@ -197,21 +191,23 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 						// Fail transition if power levels on the avionics rail
 						// are measured but are insufficient
 						if (status->condition_power_input_valid && (status->avionics_power_rail_voltage > 0.0f)) {
-							printf("In  condition_power_input_valid\n");
+							printf("(state_machine_helper) In condition_power_input_valid\n");
 							// Check avionics rail voltages
 							if (status->avionics_power_rail_voltage < 4.75f) {
-								printf("In  avionics_power_rail_voltage < 4.75f\n");
+								printf("(state_machine_helper) In avionics_power_rail_voltage < 4.75f\n");
 								mavlink_log_critical(mavlink_fd, "NOT ARMING: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
 								feedback_provided = true;
 								valid_transition = false;
 							} else if (status->avionics_power_rail_voltage < 4.9f) {
-								printf("In  avionics_power_rail_voltage < 4.9f\n");
+								printf("(state_machine_helper) In avionics_power_rail_voltage < 4.9f\n");
 								mavlink_log_critical(mavlink_fd, "CAUTION: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
 								feedback_provided = true;
+								valid_transition = true;
 							} else if (status->avionics_power_rail_voltage > 5.4f) {
-								printf("In  avionics_power_rail_voltage < 5.4f\n");
+								printf("(state_machine_helper) In avionics_power_rail_voltage < 5.4f\n");
 								mavlink_log_critical(mavlink_fd, "CAUTION: Avionics power high: %6.2f Volt", (double)status->avionics_power_rail_voltage);
 								feedback_provided = true;
+								valid_transition = true;
 							}
 						}
 					}
@@ -219,18 +215,14 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 				}
 
 			} else if (new_arming_state == ARMING_STATE_STANDBY && status->arming_state == ARMING_STATE_ARMED_ERROR) {
-				printf("In ARMING_STATE_STANDBY\n");
+				printf("(state_machine_helper) In ARMING_STATE_STANDBY\n");
 				new_arming_state = ARMING_STATE_STANDBY_ERROR;
 			}
 		}
 
-		// HIL can always go to standby
-		if (status->hil_state == HIL_STATE_ON && new_arming_state == ARMING_STATE_STANDBY) {
-			valid_transition = true;
-		}
-
 		/* Sensors need to be initialized for STANDBY state */
 		if (new_arming_state == ARMING_STATE_STANDBY && !status->condition_system_sensors_initialized) {
+			printf("(state_machine_helper) In sensors not operational");
 			mavlink_log_critical(mavlink_fd, "NOT ARMING: Sensors not operational.");
 			feedback_provided = true;
 			valid_transition = false;
@@ -426,7 +418,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, int status_pub, 
 						int block_ret = ::ioctl(sensfd, DEVIOCSPUBBLOCK, 1);
 						close(sensfd);
 
-						printf("Disabling %s: %s\n", devname, (block_ret == OK) ? "OK" : "ERROR");
+						printf("(state_machine_helper) Disabling %s: %s\n", devname, (block_ret == OK) ? "OK" : "ERROR");
 					}
 					closedir(d);
 					ret = TRANSITION_CHANGED;

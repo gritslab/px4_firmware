@@ -1141,7 +1141,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		 * and PWM under control of the flight config
 		 * parameters. Note that this does not allow for
 		 * changing a set of pins to be used for serial on
-		 * FMUv1 
+		 * FMUv1
 		 */
 		switch (arg) {
 		case 0:
@@ -1601,6 +1601,7 @@ fmu_start(void)
 			ret = -ENOMEM;
 
 		} else {
+			warnx("initialize");
 			ret = g_fmu->init();
 
 			if (ret != OK) {
@@ -1800,8 +1801,11 @@ fmu_main(int argc, char *argv[])
 	}
 
 
-	if (fmu_start() != OK)
+	if (fmu_start() != OK) {
 		errx(1, "failed to start the FMU driver");
+	} else {
+		warnx("fmu_started");
+	}
 
 	/*
 	 * Mode switches.

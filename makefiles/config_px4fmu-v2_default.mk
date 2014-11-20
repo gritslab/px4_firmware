@@ -72,7 +72,7 @@ MODULES		+= systemcmds/ver
 # General system control
 #
 MODULES		+= modules/commander
-MODULES		+= modules/navigator
+# MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
 MODULES		+= modules/gpio_led
 # MODULES		+= modules/uavcan
@@ -93,8 +93,8 @@ MODULES     += modules/position_estimator_vicon
 # Vehicle Control
 #
 #MODULES		+= modules/segway # XXX Needs GCC 4.7 fix
-# MODULES		+= modules/mc_att_control
-# MODULES		+= modules/mc_pos_control
+MODULES		+= modules/mc_att_control
+MODULES		+= modules/mc_pos_control
 
 #
 # Logging
@@ -140,7 +140,7 @@ MODULES		+= lib/launchdetection
 #MODULES		+= examples/math_demo
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/hello_sky
-MODULES		+= examples/px4_simple_app
+# MODULES		+= examples/px4_simple_app
 
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/daemon
@@ -149,10 +149,6 @@ MODULES		+= examples/px4_simple_app
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/debug_values
 #MODULES		+= examples/px4_mavlink_debug
-
-# Tutorial code from
-# https://pixhawk.ethz.ch/px4/dev/example_fixedwing_control
-#MODULES			+= examples/fixedwing_control
 
 # Hardware test
 #MODULES			+= examples/hwtest

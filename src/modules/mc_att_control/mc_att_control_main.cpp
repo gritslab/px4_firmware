@@ -808,7 +808,7 @@ MulticopterAttitudeControl::task_main()
 				if (_v_control_mode.flag_control_manual_enabled) {
 					/* manual rates control - ACRO mode */
 					_rates_sp = math::Vector<3>(_manual_control_sp.y, -_manual_control_sp.x, _manual_control_sp.r).emult(_params.acro_rate_max);
-					_thrust_sp = _manual_control_sp.z;
+					_thrust_sp = (_manual_control_sp.z + 1) / 2;
 
 					/* reset yaw setpoint after ACRO */
 					_reset_yaw_sp = true;

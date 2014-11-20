@@ -47,19 +47,19 @@
  *
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
+PARAM_DEFINE_INT32(SYS_AUTOSTART, 1);
 
 /**
  * Automatically configure default values.
  *
  * Set to 1 to set platform-specific parameters to their default
- * values on next system startup. 
+ * values on next system startup.
  *
  * @min 0
  * @max 1
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
+PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 4010);
 
 /**
 * Set usage of IO board

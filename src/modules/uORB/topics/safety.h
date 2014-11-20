@@ -49,7 +49,7 @@ struct safety_s {
 
 	uint64_t	timestamp;
 	bool	safety_switch_available;	/**< Set to true if a safety switch is connected */
-	bool	safety_off;			/**< Set to true if safety is off */
+	bool	safety_mode;			/**< Set to true if in safety mode */
 };
 
 ORB_DECLARE(safety);
