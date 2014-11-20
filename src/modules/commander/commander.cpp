@@ -129,6 +129,10 @@ void Commander::m_close_orb_subscribers()
 
 void Commander::m_init_orb_publishers()
 {
+    m_vehicle_control_mode_pub = orb_advertise(ORB_ID(vehicle_control_mode),
+                                               &m_vehicle_control_mode);
+    memset(&m_vehicle_control_mode, 0, sizeof(m_vehicle_control_mode));
+
     m_actuator_armed_pub = orb_advertise(ORB_ID(actuator_armed),
                                          &m_actuator_armed);
     memset(&m_actuator_armed, 0, sizeof(m_actuator_armed));
@@ -136,7 +140,12 @@ void Commander::m_init_orb_publishers()
 
 void Commander::m_orb_publish()
 {
-    orb_publish(ORB_ID(actuator_armed), m_actuator_armed_pub, &m_actuator_armed);
+    orb_publish(ORB_ID(vehicle_control_mode),
+                m_vehicle_control_mode_pub, &m_vehicle_control_mode);
+
+
+    orb_publish(ORB_ID(actuator_armed),
+                m_actuator_armed_pub, &m_actuator_armed);
 }
 
 void Commander::m_init_finite_state()
@@ -157,15 +166,26 @@ void Commander::m_init_finite_state()
 
 void Commander::m_update_vars_based_on_state()
 {
+    hrt_abstime t1 = hrt_absolute_time();
+
+    // m_vehicle_control_mode
+    m_vehicle_control_mode.timestamp = t1;
+    if (finite_state[ARM_STATE] == ARMED) {
+        m_vehicle_control_mode.flag_armed = true;
+    } else {
+        m_vehicle_control_mode.flag_armed = false;
+    }
+    m_vehicle_control_mode.flag_control_manual_enabled = true;
+
     // m_actuator_armed
-    m_actuator_armed.timestamp = hrt_absolute_time();
+    m_actuator_armed.timestamp = t1;
     if (finite_state[ARM_STATE] == SAFETY) {
         m_actuator_armed.armed = false;
         m_actuator_armed.ready_to_arm = true;
     } else if (finite_state[ARM_STATE] == DISARMED) {
         m_actuator_armed.armed = false;
         m_actuator_armed.ready_to_arm = true;
-    } else {
+    } else if (finite_state[ARM_STATE] == ARMED) {
         m_actuator_armed.armed = true;
         m_actuator_armed.ready_to_arm = true;
     }
@@ -177,7 +197,7 @@ void Commander::m_update_vars_based_on_state()
     } else if (finite_state[ARM_STATE] == DISARMED) {
         led.set_color(RGBLED_COLOR_GREEN);
         led.set_mode(RGBLED_MODE_BLINK_NORMAL);
-    } else {
+    } else if (finite_state[ARM_STATE] == ARMED) {
         led.set_color(RGBLED_COLOR_GREEN);
         led.set_mode(RGBLED_MODE_ON);
     }

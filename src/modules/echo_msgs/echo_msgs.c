@@ -24,7 +24,8 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 #include <drivers/drv_rc_input.h>
-
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
 
 
 //------------------------------------------------------------------------------
@@ -43,6 +44,8 @@ static bool actuator_armed_flag = false;
 static bool manual_control_setpoint_flag = false;
 static bool actuator_controls_flag = false;
 static bool input_rc_flag = false;
+static bool vehicle_control_mode_flag = false;
+static bool vehicle_rates_setpoint_flag = false;
 
 //------------------------------------------------------------------------------
 // Function Definitions
@@ -60,6 +63,8 @@ void print_actuator_armed(struct actuator_armed_s actuator_armed_data);
 void print_manual_control_setpoint(struct manual_control_setpoint_s manual_control_setpoint_data);
 void print_actuator_controls(struct actuator_controls_s actuator_controls_data);
 void print_input_rc(struct rc_input_values input_rc_data);
+void print_vehicle_control_mode(struct vehicle_control_mode_s vehicle_control_mode_data);
+void print_vehicle_rates_setpoint(struct vehicle_rates_setpoint_s vehicle_rates_setpoint_data);
 
 //------------------------------------------------------------------------------
 // Function Implementations
@@ -157,6 +162,18 @@ int echo_msgs_main(int argc, char *argv[])
             warnx("\t input_rc: on");
         } else {
             warnx("\t input_rc: off");
+        }
+
+        if (vehicle_control_mode_flag) {
+            warnx("\t vehicle_control_mode: on");
+        } else {
+            warnx("\t vehicle_control_mode: off");
+        }
+
+        if (vehicle_rates_setpoint_flag) {
+            warnx("\t vehicle_rates_setpoint: on");
+        } else {
+            warnx("\t vehicle_rates_setpoint: off");
         }
 
         return 0;
@@ -261,6 +278,28 @@ int echo_msgs_main(int argc, char *argv[])
         return 0;
     }
 
+    if (!strcmp(argv[1], "vehicle_control_mode")) {
+        if (vehicle_control_mode_flag) {
+            vehicle_control_mode_flag = false;
+            warnx("\t vehicle_control_mode: off");
+        } else {
+            vehicle_control_mode_flag = true;
+            warnx("\t vehicle_control_mode: on");
+        }
+        return 0;
+    }
+
+    if (!strcmp(argv[1], "vehicle_rates_setpoint")) {
+        if (vehicle_rates_setpoint_flag) {
+            vehicle_rates_setpoint_flag = false;
+            warnx("\t vehicle_rates_setpoint: off");
+        } else {
+            vehicle_rates_setpoint_flag = true;
+            warnx("\t vehicle_rates_setpoint: on");
+        }
+        return 0;
+    }
+
     usage("unrecognized command");
     return 1;
 }
@@ -299,13 +338,21 @@ int echo_msgs_thread_main(int argc, char *argv[])
     struct manual_control_setpoint_s manual_control_setpoint_data;
     memset(&manual_control_setpoint_data, 0, sizeof(manual_control_setpoint_data));
 
-    int actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+    int actuator_controls_sub = orb_subscribe(ORB_ID(actuator_controls_0));
     struct actuator_controls_s actuator_controls_data;
     memset(&actuator_controls_data, 0, sizeof(actuator_controls_data));
 
     int input_rc_sub = orb_subscribe(ORB_ID(input_rc));
     struct rc_input_values input_rc_data;
     memset(&input_rc_data, 0, sizeof(input_rc_data));
+
+    int vehicle_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+    struct vehicle_control_mode_s vehicle_control_mode_data;
+    memset(&vehicle_control_mode_data, 0, sizeof(vehicle_control_mode_data));
+
+    int vehicle_rates_setpoint_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
+    struct vehicle_rates_setpoint_s vehicle_rates_setpoint_data;
+    memset(&vehicle_rates_setpoint_data, 0, sizeof(vehicle_rates_setpoint_data));
 
     bool updated = false;
     while (!thread_should_exit) {
@@ -354,7 +401,7 @@ int echo_msgs_thread_main(int argc, char *argv[])
 
         orb_check(actuator_controls_sub, &updated);
         if (updated & actuator_controls_flag) {
-            orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_controls_sub, &actuator_controls_data);
+            orb_copy(ORB_ID(actuator_controls_0), actuator_controls_sub, &actuator_controls_data);
             print_actuator_controls(actuator_controls_data);
         }
 
@@ -362,6 +409,18 @@ int echo_msgs_thread_main(int argc, char *argv[])
         if (updated & input_rc_flag) {
             orb_copy(ORB_ID(input_rc), input_rc_sub, &input_rc_data);
             print_input_rc(input_rc_data);
+        }
+
+        orb_check(vehicle_control_mode_sub, &updated);
+        if (updated & vehicle_control_mode_flag) {
+            orb_copy(ORB_ID(vehicle_control_mode), vehicle_control_mode_sub, &vehicle_control_mode_data);
+            print_vehicle_control_mode(vehicle_control_mode_data);
+        }
+
+        orb_check(vehicle_rates_setpoint_sub, &updated);
+        if (updated & vehicle_rates_setpoint_flag) {
+            orb_copy(ORB_ID(vehicle_rates_setpoint), vehicle_rates_setpoint_sub, &vehicle_rates_setpoint_data);
+            print_vehicle_rates_setpoint(vehicle_rates_setpoint_data);
         }
 
         usleep(500000);
@@ -483,4 +542,33 @@ void print_input_rc(struct rc_input_values input_rc_data)
     for (int i=0; i<6; i++) {
         printf("\t values %d: %d\n", i, input_rc_data.values[6]);
     }
+}
+
+void print_vehicle_control_mode(struct vehicle_control_mode_s vehicle_control_mode_data)
+{
+    printf("vehicle_control_mode:\n");
+    printf("\t timestamp: %d\n", vehicle_control_mode_data.timestamp);
+    printf("\t flag_armed: %d\n", vehicle_control_mode_data.flag_armed);
+    printf("\t flag_external_manual_override_ok: %d\n", vehicle_control_mode_data.flag_external_manual_override_ok);
+    printf("\t flag_system_hil_enabled: %d\n", vehicle_control_mode_data.flag_system_hil_enabled);
+    printf("\t flag_control_manual_enabled: %d\n", vehicle_control_mode_data.flag_control_manual_enabled);
+    printf("\t flag_control_auto_enabled: %d\n", vehicle_control_mode_data.flag_control_auto_enabled);
+    printf("\t flag_control_offboard_enabled: %d\n", vehicle_control_mode_data.flag_control_offboard_enabled);
+    printf("\t flag_control_rates_enabled: %d\n", vehicle_control_mode_data.flag_control_rates_enabled);
+    printf("\t flag_control_attitude_enabled: %d\n", vehicle_control_mode_data.flag_control_attitude_enabled);
+    printf("\t flag_control_force_enabled: %d\n", vehicle_control_mode_data.flag_control_force_enabled);
+    printf("\t flag_control_velocity_enabled: %d\n", vehicle_control_mode_data.flag_control_velocity_enabled);
+    printf("\t flag_control_altitude_enabled: %d\n", vehicle_control_mode_data.flag_control_altitude_enabled);
+    printf("\t flag_control_climb_rate_enabled: %d\n", vehicle_control_mode_data.flag_control_climb_rate_enabled);
+    printf("\t flag_control_termination_enabled: %d\n", vehicle_control_mode_data.flag_control_termination_enabled);
+}
+
+void print_vehicle_rates_setpoint(struct vehicle_rates_setpoint_s vehicle_rates_setpoint_data)
+{
+    printf("vehicle_rates_setpoint:\n");
+    printf("\t timestamp: %d\n", vehicle_rates_setpoint_data.timestamp);
+    printf("\t roll: %8.4f\n", (double)vehicle_rates_setpoint_data.roll);
+    printf("\t pitch: %8.4f\n", (double)vehicle_rates_setpoint_data.pitch);
+    printf("\t yaw: %8.4f\n", (double)vehicle_rates_setpoint_data.yaw);
+    printf("\t thrust: %8.4f\n", (double)vehicle_rates_setpoint_data.thrust);
 }

@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include <uORB/topics/safety.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/actuator_armed.h>
 
 #include "finite_state.h"
@@ -64,6 +65,9 @@ private:
     struct safety_s m_safety;
 
     // Publisher variables
+    orb_advert_t m_vehicle_control_mode_pub;
+    struct vehicle_control_mode_s m_vehicle_control_mode;
+
     orb_advert_t m_actuator_armed_pub;
     struct actuator_armed_s m_actuator_armed;
 
