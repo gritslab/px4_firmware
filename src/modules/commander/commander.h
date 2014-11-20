@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include <uORB/topics/safety.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/actuator_armed.h>
 
@@ -40,9 +41,14 @@ public:
 
 
     //--------------------------------------------------------------------------
-    // Public Member Variables
+    // Public Member Constants and Variables
     //--------------------------------------------------------------------------
-    static const int sleep_interval = 50000;
+    // Constants
+    const int sleep_interval = 50000;
+    const float stick_arm_disarm_limit = 0.9f;
+    const int stick_arm_disarm_wait_time_ms = 1000;
+
+    // Variables
     FiniteState finite_state;
     Led led;
 
@@ -55,14 +61,22 @@ public:
     void print_state() { finite_state.print_state(); };
     void update();
     int toggle_arm();
+    int arm();
+    int disarm();
 
 private:
     //--------------------------------------------------------------------------
     // Private Member Variables
     //--------------------------------------------------------------------------
+    int m_stick_arm_disarm_counter_limit;
+    int m_stick_arm_disarm_counter;
+
     // Subscription variables
     int m_safety_sub;
     struct safety_s m_safety;
+
+    int m_manual_control_setpoint_sub;
+    struct manual_control_setpoint_s m_manual_control_setpoint;
 
     // Publisher variables
     orb_advert_t m_vehicle_control_mode_pub;
@@ -78,8 +92,11 @@ private:
     void m_close_orb_subscribers();
     void m_init_orb_publishers();
     void m_orb_publish();
-    void m_init_finite_state();
+    void m_init_vars_and_finiti_state();
+    void m_update_finite_state();
     void m_update_vars_based_on_state();
+    void m_check_safety();
+    void m_check_rc_arm_disarm(int arm_state_check);
 };
 
 #endif

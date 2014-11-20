@@ -31,8 +31,14 @@
 // Constructors and Destructors
 //------------------------------------------------------------------------------
 Commander::Commander()
+:
+m_stick_arm_disarm_counter(0)
 {
+    finite_state[FLIGHT_STATE] = TELEOP; // TODO: remove
 
+    // Variables for RC stick checking for arm/disarm
+    float commander_monitoring_loops_per_msec = 1/(sleep_interval/1000.0);
+    m_stick_arm_disarm_counter_limit = stick_arm_disarm_wait_time_ms * commander_monitoring_loops_per_msec;
 }
 
 Commander::~Commander()
@@ -56,8 +62,8 @@ void Commander::init()
     // Init publishers
     m_init_orb_publishers();
 
-    // Init finite state
-    m_init_finite_state();
+    // Init variables and finite state
+    m_init_vars_and_finiti_state();
 
     // Init led
     led.init();
@@ -79,31 +85,16 @@ void Commander::msg(const char* info)
 
 void Commander::update()
 {
-    bool updated;
-
-    // Safety
-    orb_check(m_safety_sub, &updated);
-    if (updated) {
-        bool safety_mode_prev = m_safety.safety_mode;
-        orb_copy(ORB_ID(safety), m_safety_sub, &m_safety);
-        if (m_safety.safety_mode != safety_mode_prev) {
-            if (m_safety.safety_mode) {
-                finite_state[ARM_STATE] = SAFETY;
-            } else {
-                finite_state[ARM_STATE] = DISARMED;
-            }
-        }
-    }
-
+    m_update_finite_state();
     m_update_vars_based_on_state();
     m_orb_publish();
-
 }
 
 int Commander::toggle_arm()
 {
     if (finite_state[ARM_STATE] == SAFETY) {
         msg("Unable to toggle state due to safety switch");
+        return 1;
     } else if (finite_state[ARM_STATE] == DISARMED) {
         finite_state[ARM_STATE] = ARMED;
     } else if (finite_state[ARM_STATE] == ARMED) {
@@ -112,19 +103,41 @@ int Commander::toggle_arm()
     return 0;
 }
 
+int Commander::arm()
+{
+    if (finite_state[ARM_STATE] == SAFETY) {
+        msg("Unable to toggle state due to safety switch");
+        return 1;
+    } else {
+        finite_state[ARM_STATE] = ARMED;
+    }
+    return 0;
+}
+
+int Commander::disarm()
+{
+    finite_state[ARM_STATE] = DISARMED;
+    return 0;
+}
+
 //------------------------------------------------------------------------------
 // Private Methods
 //------------------------------------------------------------------------------
 void Commander::m_init_orb_subscribers()
 {
-    // Safety topic
+    // safety topic
     m_safety_sub = orb_subscribe(ORB_ID(safety));
     memset(&m_safety, 0, sizeof(m_safety));
+
+    // manual_control_setpoint topic (for RC inputs)
+    m_manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+    memset(&m_manual_control_setpoint, 0, sizeof(m_manual_control_setpoint));
 }
 
 void Commander::m_close_orb_subscribers()
 {
     close(m_safety_sub);
+    close(m_manual_control_setpoint_sub);
 }
 
 void Commander::m_init_orb_publishers()
@@ -148,11 +161,11 @@ void Commander::m_orb_publish()
                 m_actuator_armed_pub, &m_actuator_armed);
 }
 
-void Commander::m_init_finite_state()
+void Commander::m_init_vars_and_finiti_state()
 {
     bool updated;
 
-    // Safety
+    // ArmState
     orb_check(m_safety_sub, &updated);
     if (updated) {
         orb_copy(ORB_ID(safety), m_safety_sub, &m_safety);
@@ -160,6 +173,30 @@ void Commander::m_init_finite_state()
             finite_state[ARM_STATE] = SAFETY;
         } else {
             finite_state[ARM_STATE] = DISARMED;
+        }
+    }
+
+    // FlightState
+    if (finite_state[FLIGHT_STATE] == TELEOP) {
+        m_vehicle_control_mode.flag_control_manual_enabled = true;
+        m_vehicle_control_mode.flag_control_rates_enabled = true;
+    } else {
+        m_vehicle_control_mode.flag_control_manual_enabled = false;
+        m_vehicle_control_mode.flag_control_rates_enabled = true;
+    }
+}
+
+void Commander::m_update_finite_state()
+{
+    // Safety
+    m_check_safety();
+
+    // RC arm/disarm
+    if (finite_state[FLIGHT_STATE] == TELEOP) {
+        if (finite_state[ARM_STATE] == DISARMED) {
+            m_check_rc_arm_disarm(ARMED);
+        } else if (finite_state[ARM_STATE] == ARMED) {
+            m_check_rc_arm_disarm(DISARMED);
         }
     }
 }
@@ -175,8 +212,6 @@ void Commander::m_update_vars_based_on_state()
     } else {
         m_vehicle_control_mode.flag_armed = false;
     }
-    m_vehicle_control_mode.flag_control_manual_enabled = true;
-    m_vehicle_control_mode.flag_control_rates_enabled = true;
 
     // m_actuator_armed
     m_actuator_armed.timestamp = t1;
@@ -204,6 +239,51 @@ void Commander::m_update_vars_based_on_state()
     }
 }
 
+void Commander::m_check_safety()
+{
+    bool updated;
+    orb_check(m_safety_sub, &updated);
+    if (updated) {
+        bool safety_mode_prev = m_safety.safety_mode;
+        orb_copy(ORB_ID(safety), m_safety_sub, &m_safety);
+        if (m_safety.safety_mode != safety_mode_prev) {
+            if (m_safety.safety_mode) {
+                finite_state[ARM_STATE] = SAFETY;
+            } else {
+                finite_state[ARM_STATE] = DISARMED;
+            }
+        }
+    }
+}
+
+void Commander::m_check_rc_arm_disarm(int arm_state_check)
+{
+    // for arming check if left stick is in lower left position
+    // for disarming check if left stick is in lower left position
+    int side = ((arm_state_check == ARMED) ? 1 : -1);
+
+    bool updated;
+    orb_check(m_manual_control_setpoint_sub, &updated);
+    if (updated) {
+        orb_copy(ORB_ID(manual_control_setpoint),
+                 m_manual_control_setpoint_sub, &m_manual_control_setpoint);
+
+        if (side*m_manual_control_setpoint.r > stick_arm_disarm_limit &&
+            m_manual_control_setpoint.z < (1-stick_arm_disarm_limit)) {
+
+            if (m_stick_arm_disarm_counter > m_stick_arm_disarm_counter_limit) {
+                if (arm_state_check == ARMED) {
+                    arm();
+                } else {
+                    disarm();
+                }
+                m_stick_arm_disarm_counter = 0;
+            } else {
+                m_stick_arm_disarm_counter++;
+            }
+        }
+    }
+}
 
 //------------------------------------------------------------------------------
 // Helper Functions

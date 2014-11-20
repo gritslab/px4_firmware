@@ -462,7 +462,7 @@ void print_safety(struct safety_s safety_data)
 void print_rc_channels(struct rc_channels_s rc_channels_data)
 {
     printf("rc_channels:\n");
-    printf("\t timestamp: %d\n", rc_channels_data.timestamp);
+    printf("\t timestamp: %ld\n", (long)rc_channels_data.timestamp);
     printf("\t timestamp_last_valid: %d\n", rc_channels_data.timestamp_last_valid);
     printf("\t channel_count: %d\n", rc_channels_data.channel_count);
     printf("\t rssi: %d\n", rc_channels_data.rssi);
@@ -492,7 +492,7 @@ void print_vehicle_command(struct vehicle_command_s vehicle_command_data)
 void print_actuator_armed(struct actuator_armed_s actuator_armed_data)
 {
     printf("actuator_armed:\n");
-    printf("\t timestamp: %d\n", actuator_armed_data.timestamp);
+    printf("\t timestamp: %ld\n", (long)actuator_armed_data.timestamp);
     printf("\t armed: %d\n", actuator_armed_data.armed);
     printf("\t ready_to_arm: %d\n", actuator_armed_data.ready_to_arm);
     printf("\t lockdown: %d\n", actuator_armed_data.lockdown);
@@ -502,7 +502,7 @@ void print_actuator_armed(struct actuator_armed_s actuator_armed_data)
 void print_manual_control_setpoint(struct manual_control_setpoint_s manual_control_setpoint_data)
 {
     printf("manual_control_setpoint:\n");
-    printf("\t timestamp: %d\n", manual_control_setpoint_data.timestamp);
+    printf("\t timestamp: %ld\n", (long)manual_control_setpoint_data.timestamp);
     printf("\t x: %8.4f\n", (double)manual_control_setpoint_data.x);
     printf("\t y: %8.4f\n", (double)manual_control_setpoint_data.y);
     printf("\t z: %8.4f\n", (double)manual_control_setpoint_data.z);
@@ -524,7 +524,7 @@ void print_manual_control_setpoint(struct manual_control_setpoint_s manual_contr
 void print_actuator_controls(struct actuator_controls_s actuator_controls_data)
 {
     printf("actuator_controls:\n");
-    printf("\t timestamp: %d\n", actuator_controls_data.timestamp);
+    printf("\t timestamp: %ld\n", (long)actuator_controls_data.timestamp);
     for (int i=0; i<NUM_ACTUATOR_CONTROLS; ++i) {
         printf("\t control[%d]: %8.4f\n", i, (double)actuator_controls_data.control[i]);
     }
@@ -547,7 +547,7 @@ void print_input_rc(struct rc_input_values input_rc_data)
 void print_vehicle_control_mode(struct vehicle_control_mode_s vehicle_control_mode_data)
 {
     printf("vehicle_control_mode:\n");
-    printf("\t timestamp: %d\n", vehicle_control_mode_data.timestamp);
+    printf("\t timestamp: %ld\n", (long)vehicle_control_mode_data.timestamp);
     printf("\t flag_armed: %d\n", vehicle_control_mode_data.flag_armed);
     printf("\t flag_external_manual_override_ok: %d\n", vehicle_control_mode_data.flag_external_manual_override_ok);
     printf("\t flag_system_hil_enabled: %d\n", vehicle_control_mode_data.flag_system_hil_enabled);
