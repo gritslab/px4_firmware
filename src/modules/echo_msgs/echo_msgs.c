@@ -23,6 +23,8 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
+#include <drivers/drv_rc_input.h>
+
 
 
 //------------------------------------------------------------------------------
@@ -40,6 +42,7 @@ static bool vehicle_command_flag = false;
 static bool actuator_armed_flag = false;
 static bool manual_control_setpoint_flag = false;
 static bool actuator_controls_flag = false;
+static bool input_rc_flag = false;
 
 //------------------------------------------------------------------------------
 // Function Definitions
@@ -56,6 +59,7 @@ void print_vehicle_command(struct vehicle_command_s vehicle_command_data);
 void print_actuator_armed(struct actuator_armed_s actuator_armed_data);
 void print_manual_control_setpoint(struct manual_control_setpoint_s manual_control_setpoint_data);
 void print_actuator_controls(struct actuator_controls_s actuator_controls_data);
+void print_input_rc(struct rc_input_values input_rc_data);
 
 //------------------------------------------------------------------------------
 // Function Implementations
@@ -149,6 +153,12 @@ int echo_msgs_main(int argc, char *argv[])
             warnx("\t actuator_controls: off");
         }
 
+        if (input_rc_flag) {
+            warnx("\t input_rc: on");
+        } else {
+            warnx("\t input_rc: off");
+        }
+
         return 0;
     }
 
@@ -240,6 +250,17 @@ int echo_msgs_main(int argc, char *argv[])
         return 0;
     }
 
+    if (!strcmp(argv[1], "input_rc")) {
+        if (input_rc_flag) {
+            input_rc_flag = false;
+            warnx("\t input_rc: off");
+        } else {
+            input_rc_flag = true;
+            warnx("\t input_rc: on");
+        }
+        return 0;
+    }
+
     usage("unrecognized command");
     return 1;
 }
@@ -281,6 +302,10 @@ int echo_msgs_thread_main(int argc, char *argv[])
     int actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
     struct actuator_controls_s actuator_controls_data;
     memset(&actuator_controls_data, 0, sizeof(actuator_controls_data));
+
+    int input_rc_sub = orb_subscribe(ORB_ID(input_rc));
+    struct rc_input_values input_rc_data;
+    memset(&input_rc_data, 0, sizeof(input_rc_data));
 
     bool updated = false;
     while (!thread_should_exit) {
@@ -333,6 +358,11 @@ int echo_msgs_thread_main(int argc, char *argv[])
             print_actuator_controls(actuator_controls_data);
         }
 
+        orb_check(input_rc_sub, &updated);
+        if (updated & input_rc_flag) {
+            orb_copy(ORB_ID(input_rc), input_rc_sub, &input_rc_data);
+            print_input_rc(input_rc_data);
+        }
 
         usleep(500000);
     }
@@ -373,10 +403,14 @@ void print_safety(struct safety_s safety_data)
 void print_rc_channels(struct rc_channels_s rc_channels_data)
 {
     printf("rc_channels:\n");
+    printf("\t timestamp: %d\n", rc_channels_data.timestamp);
+    printf("\t timestamp_last_valid: %d\n", rc_channels_data.timestamp_last_valid);
+    printf("\t channel_count: %d\n", rc_channels_data.channel_count);
+    printf("\t rssi: %d\n", rc_channels_data.rssi);
+    printf("\t signal_lost: %d\n", rc_channels_data.signal_lost);
     for (int i=0; i<RC_CHANNELS_FUNCTION_MAX; i++) {
         printf("\t channel %d: %8.4f\n", i, (double)rc_channels_data.channels[i]);
     }
-    printf("\t rssi: %d\n", rc_channels_data.rssi);
 }
 
 void print_vehicle_command(struct vehicle_command_s vehicle_command_data)
@@ -435,5 +469,18 @@ void print_actuator_controls(struct actuator_controls_s actuator_controls_data)
     for (int i=0; i<NUM_ACTUATOR_CONTROLS; ++i) {
         printf("\t control[%d]: %8.4f\n", i, (double)actuator_controls_data.control[i]);
     }
+}
 
+void print_input_rc(struct rc_input_values input_rc_data)
+{
+    printf("input_rc:\n");
+    printf("\t timestamp_publication: %d\n", input_rc_data.timestamp_publication);
+    printf("\t timestamp_last_signal: %d\n", input_rc_data.timestamp_last_signal);
+    printf("\t channel_count: %d\n", input_rc_data.channel_count);
+    printf("\t rssi: %d\n", input_rc_data.rssi);
+    printf("\t rc_failsafe: %d\n", input_rc_data.rc_failsafe);
+    printf("\t rc_lost: %d\n", input_rc_data.rc_lost);
+    for (int i=0; i<6; i++) {
+        printf("\t values %d: %d\n", i, input_rc_data.values[6]);
+    }
 }
