@@ -566,7 +566,7 @@ void print_vehicle_control_mode(struct vehicle_control_mode_s vehicle_control_mo
 void print_vehicle_rates_setpoint(struct vehicle_rates_setpoint_s vehicle_rates_setpoint_data)
 {
     printf("vehicle_rates_setpoint:\n");
-    printf("\t timestamp: %d\n", vehicle_rates_setpoint_data.timestamp);
+    printf("\t timestamp: %ld\n", (long)vehicle_rates_setpoint_data.timestamp);
     printf("\t roll: %8.4f\n", (double)vehicle_rates_setpoint_data.roll);
     printf("\t pitch: %8.4f\n", (double)vehicle_rates_setpoint_data.pitch);
     printf("\t yaw: %8.4f\n", (double)vehicle_rates_setpoint_data.yaw);

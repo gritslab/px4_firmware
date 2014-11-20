@@ -176,6 +176,7 @@ void Commander::m_update_vars_based_on_state()
         m_vehicle_control_mode.flag_armed = false;
     }
     m_vehicle_control_mode.flag_control_manual_enabled = true;
+    m_vehicle_control_mode.flag_control_rates_enabled = true;
 
     // m_actuator_armed
     m_actuator_armed.timestamp = t1;
@@ -192,11 +193,11 @@ void Commander::m_update_vars_based_on_state()
 
     // led
     if (finite_state[ARM_STATE] == SAFETY) {
-        led.set_color(RGBLED_COLOR_RED);
-        led.set_mode(RGBLED_MODE_BLINK_NORMAL);
+        led.set_color(RGBLED_COLOR_AMBER);
+        led.set_mode(RGBLED_MODE_ON);
     } else if (finite_state[ARM_STATE] == DISARMED) {
-        led.set_color(RGBLED_COLOR_GREEN);
-        led.set_mode(RGBLED_MODE_BLINK_NORMAL);
+        led.set_color(RGBLED_COLOR_BLUE);
+        led.set_mode(RGBLED_MODE_ON);
     } else if (finite_state[ARM_STATE] == ARMED) {
         led.set_color(RGBLED_COLOR_GREEN);
         led.set_mode(RGBLED_MODE_ON);
