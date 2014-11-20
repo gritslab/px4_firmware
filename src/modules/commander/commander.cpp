@@ -161,7 +161,7 @@ void Commander::m_update_vars_based_on_state()
     m_actuator_armed.timestamp = hrt_absolute_time();
     if (finite_state[ARM_STATE] == SAFETY) {
         m_actuator_armed.armed = false;
-        m_actuator_armed.ready_to_arm = false;
+        m_actuator_armed.ready_to_arm = true;
     } else if (finite_state[ARM_STATE] == DISARMED) {
         m_actuator_armed.armed = false;
         m_actuator_armed.ready_to_arm = true;
