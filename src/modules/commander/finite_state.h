@@ -46,7 +46,7 @@ enum FlightState
 enum SetpointState
 {
     AT_SETPOINT = 0,
-    GOINT_TO_SETPOINT
+    GOING_TO_SETPOINT
 };
 
 // Transitions
@@ -90,7 +90,7 @@ public:
         finite_state_strs[FLIGHT_STATE][TELEOP] = "TELEOP";
 
         finite_state_strs[SETPOINT_STATE][AT_SETPOINT]       = "AT_SETPOINT";
-        finite_state_strs[SETPOINT_STATE][GOINT_TO_SETPOINT] = "GOINT_TO_SETPOINT";
+        finite_state_strs[SETPOINT_STATE][GOING_TO_SETPOINT] = "GOING_TO_SETPOINT";
     }
 
     int& operator[] (const int n_index) {

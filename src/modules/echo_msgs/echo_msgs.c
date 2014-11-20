@@ -212,17 +212,6 @@ int echo_msgs_main(int argc, char *argv[])
         return 0;
     }
 
-    if (!strcmp(argv[1], "safety")) {
-        if (safety_flag) {
-            safety_flag = false;
-            warnx("\tsafety: off");
-        } else {
-            safety_flag = true;
-            warnx("\tsafety: on");
-        }
-        exit(0);
-    }
-
     if (!strcmp(argv[1], "rc_channels")) {
         if (rc_channels_flag) {
             rc_channels_flag = false;
