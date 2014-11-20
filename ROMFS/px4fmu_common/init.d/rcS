@@ -97,14 +97,16 @@ then
 	#
 	# Start system state indicator
 	#
-	if rgbled start
-	then
-	else
-		if blinkm start
-		then
-			blinkm systemstate
-		fi
-	fi
+	rgbled start
+	# TODO: create a new blinkm module base off of new simple state
+	# if rgbled start
+	# then
+	# else
+	# 	if blinkm start
+	# 	then
+	# 		blinkm systemstate
+	# 	fi
+	# fi
 
 	if pca8574 start
 	then
@@ -244,19 +246,6 @@ then
 		fi
 	fi
 
-	#
-	# Set default output if not set
-	#
-	if [ $OUTPUT_MODE == none ]
-	then
-		if [ $USE_IO == yes ]
-		then
-			set OUTPUT_MODE io
-		else
-			set OUTPUT_MODE fmu
-		fi
-	fi
-
 	if [ $OUTPUT_MODE == io -a $IO_PRESENT != yes ]
 	then
 		# Need IO for output but it not present, disable output
@@ -264,20 +253,6 @@ then
 		echo "[init] ERROR: PX4IO not found, disabling output"
 
 		# Avoid using ttyS0 for MAVLink on FMUv1
-		if ver hwcmp PX4FMU_V1
-		then
-			set FMU_MODE serial
-		fi
-	fi
-
-	if [ $OUTPUT_MODE == ardrone ]
-	then
-		set FMU_MODE gpio_serial
-	fi
-
-	if [ $HIL == yes ]
-	then
-		set OUTPUT_MODE hil
 		if ver hwcmp PX4FMU_V1
 		then
 			set FMU_MODE serial
@@ -292,139 +267,24 @@ then
 	fi
 
 	#
-	# Start the Commander (needs to be this early for in-air-restarts)
+	# Start the Commander
 	#
-	# commander start
+	commander start
 
 	#
 	# Start primary output
 	#
 	set TTYS1_BUSY no
 
-	# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output
-	if [ $OUTPUT_MODE != none ]
+
+	echo "[init] Use PX4IO PWM as primary output"
+	if px4io start
 	then
-		if [ $OUTPUT_MODE == uavcan_esc ]
-		then
-			if param compare UAVCAN_ENABLE 0
-			then
-				echo "[init] OVERRIDING UAVCAN_ENABLE = 1"
-				param set UAVCAN_ENABLE 1
-			fi
-		fi
-
-		if [ $OUTPUT_MODE == io -o $OUTPUT_MODE == uavcan_esc ]
-		then
-			echo "[init] Use PX4IO PWM as primary output"
-			if px4io start
-			then
-				echo "[init] PX4IO started"
-				sh /etc/init.d/rc.io
-			else
-				echo "[init] ERROR: PX4IO start failed"
-				tone_alarm $TUNE_OUT_ERROR
-			fi
-		fi
-
-		if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == ardrone ]
-		then
-			echo "[init] Use FMU as primary output"
-			if fmu mode_$FMU_MODE
-			then
-				echo "[init] FMU mode_$FMU_MODE started"
-			else
-				echo "[init] ERROR: FMU mode_$FMU_MODE start failed"
-				tone_alarm $TUNE_OUT_ERROR
-			fi
-
-			if ver hwcmp PX4FMU_V1
-			then
-				if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]
-				then
-					set TTYS1_BUSY yes
-				fi
-				if [ $FMU_MODE == pwm_gpio -o $OUTPUT_MODE == ardrone ]
-				then
-					set TTYS1_BUSY yes
-				fi
-			fi
-		fi
-
-		if [ $OUTPUT_MODE == mkblctrl ]
-		then
-			echo "[init] Use MKBLCTRL as primary output"
-			set MKBLCTRL_ARG ""
-			if [ $MKBLCTRL_MODE == x ]
-			then
-				set MKBLCTRL_ARG "-mkmode x"
-			fi
-			if [ $MKBLCTRL_MODE == + ]
-			then
-				set MKBLCTRL_ARG "-mkmode +"
-			fi
-
-			if mkblctrl $MKBLCTRL_ARG
-			then
-				echo "[init] MKBLCTRL started"
-			else
-				echo "[init] ERROR: MKBLCTRL start failed"
-				tone_alarm $TUNE_OUT_ERROR
-			fi
-
-		fi
-
-		if [ $OUTPUT_MODE == hil ]
-		then
-			echo "[init] Use HIL as primary output"
-			if hil mode_port2_pwm8
-			then
-				echo "[init] HIL output started"
-			else
-				echo "[init] ERROR: HIL output start failed"
-				tone_alarm $TUNE_OUT_ERROR
-			fi
-		fi
-
-		#
-		# Start IO or FMU for RC PPM input if needed
-		#
-		if [ $IO_PRESENT == yes ]
-		then
-			if [ $OUTPUT_MODE != io ]
-			then
-				if px4io start
-				then
-					echo "[init] PX4IO started"
-					sh /etc/init.d/rc.io
-				else
-					echo "[init] ERROR: PX4IO start failed"
-					tone_alarm $TUNE_OUT_ERROR
-				fi
-			fi
-		else
-			if [ $OUTPUT_MODE != fmu -a $OUTPUT_MODE != ardrone ]
-			then
-				if fmu mode_$FMU_MODE
-				then
-					echo "[init] FMU mode_$FMU_MODE started"
-				else
-					echo "[init] ERROR: FMU mode_$FMU_MODE start failed"
-					tone_alarm $TUNE_OUT_ERROR
-				fi
-
-				if ver hwcmp PX4FMU_V1
-				then
-					if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]
-					then
-						set TTYS1_BUSY yes
-					fi
-					if [ $FMU_MODE == pwm_gpio -o $OUTPUT_MODE == ardrone ]
-					then
-						set TTYS1_BUSY yes
-					fi
-				fi
-			fi
-		fi
+		echo "[init] PX4IO started"
+		sh /etc/init.d/rc.io
+	else
+		echo "[init] ERROR: PX4IO start failed"
+		tone_alarm $TUNE_OUT_ERROR
 	fi
 
 	#
@@ -471,76 +331,60 @@ then
 	fi
 
 	#
-	# Start up ARDrone Motor interface
-	#
-	if [ $OUTPUT_MODE == ardrone ]
-	then
-		ardrone_interface start -d /dev/ttyS1
-	fi
-
-	#
 	# Multicopters setup
 	#
-	if [ $VEHICLE_TYPE == mc ]
+	echo "[init] Vehicle type: MULTICOPTER"
+
+	if [ $MIXER == none ]
 	then
-		echo "[init] Vehicle type: MULTICOPTER"
+		echo "Default mixer for multicopter not defined"
+	fi
 
-		if [ $MIXER == none ]
+	if [ $MAV_TYPE == none ]
+	then
+		# Use mixer to detect vehicle type
+		if [ $MIXER == FMU_quad_x -o $MIXER == FMU_quad_+ ]
 		then
-			echo "Default mixer for multicopter not defined"
+			set MAV_TYPE 2
 		fi
-
-		if [ $MAV_TYPE == none ]
+		if [ $MIXER == FMU_quad_w ]
 		then
-			# Use mixer to detect vehicle type
-			if [ $MIXER == FMU_quad_x -o $MIXER == FMU_quad_+ ]
-			then
-				set MAV_TYPE 2
-			fi
-			if [ $MIXER == FMU_quad_w ]
-			then
-				set MAV_TYPE 2
-			fi
-			if [ $MIXER == FMU_hexa_x -o $MIXER == FMU_hexa_+ ]
-			then
-				set MAV_TYPE 13
-			fi
-			if [ $MIXER == FMU_hexa_cox ]
-			then
-				set MAV_TYPE 13
-			fi
-			if [ $MIXER == FMU_octo_x -o $MIXER == FMU_octo_+ ]
-			then
-				set MAV_TYPE 14
-			fi
-			if [ $MIXER == FMU_octo_cox ]
-			then
-				set MAV_TYPE 14
-			fi
+			set MAV_TYPE 2
 		fi
-
-		# Still no MAV_TYPE found
-		if [ $MAV_TYPE == none ]
+		if [ $MIXER == FMU_hexa_x -o $MIXER == FMU_hexa_+ ]
 		then
-			echo "Unknown MAV_TYPE"
-		else
-			param set MAV_TYPE $MAV_TYPE
+			set MAV_TYPE 13
 		fi
-
-		# Load mixer and configure outputs
-		sh /etc/init.d/rc.interface
-
-		# Start standard multicopter apps
-		if [ $LOAD_DEFAULT_APPS == yes ]
+		if [ $MIXER == FMU_hexa_cox ]
 		then
-			sh /etc/init.d/rc.mc_apps
+			set MAV_TYPE 13
+		fi
+		if [ $MIXER == FMU_octo_x -o $MIXER == FMU_octo_+ ]
+		then
+			set MAV_TYPE 14
+		fi
+		if [ $MIXER == FMU_octo_cox ]
+		then
+			set MAV_TYPE 14
 		fi
 	fi
 
-	#
-	# Start the navigator
-	#
-	# navigator start
+	# Still no MAV_TYPE found
+	if [ $MAV_TYPE == none ]
+	then
+		echo "Unknown MAV_TYPE"
+	else
+		param set MAV_TYPE $MAV_TYPE
+	fi
+
+	# Load mixer and configure outputs
+	sh /etc/init.d/rc.interface
+
+	# Start standard multicopter apps
+	if [ $LOAD_DEFAULT_APPS == yes ]
+	then
+		sh /etc/init.d/rc.mc_apps
+	fi
 
 	#
 	# Generic setup (autostart ID not found)
