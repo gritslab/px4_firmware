@@ -21,6 +21,8 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/actuator_controls.h>
 
 
 //------------------------------------------------------------------------------
@@ -36,6 +38,8 @@ static bool safety_flag = false;
 static bool rc_channels_flag = false;
 static bool vehicle_command_flag = false;
 static bool actuator_armed_flag = false;
+static bool manual_control_setpoint_flag = false;
+static bool actuator_controls_flag = false;
 
 //------------------------------------------------------------------------------
 // Function Definitions
@@ -50,7 +54,8 @@ void print_safety(struct safety_s safety_data);
 void print_rc_channels(struct rc_channels_s rc_channels_data);
 void print_vehicle_command(struct vehicle_command_s vehicle_command_data);
 void print_actuator_armed(struct actuator_armed_s actuator_armed_data);
-
+void print_manual_control_setpoint(struct manual_control_setpoint_s manual_control_setpoint_data);
+void print_actuator_controls(struct actuator_controls_s actuator_controls_data);
 
 //------------------------------------------------------------------------------
 // Function Implementations
@@ -91,45 +96,57 @@ int echo_msgs_main(int argc, char *argv[])
 
     if (!strcmp(argv[1], "status")) {
         if (thread_running) {
-            warnx("\trunning\n");
+            warnx("\t running\n");
         } else {
-            warnx("\tnot started\n");
+            warnx("\t not started\n");
         }
 
         if (vehicle_vicon_position_flag) {
-            warnx("\tvehicle_vicon_position: on");
+            warnx("\t vehicle_vicon_position: on");
         } else {
-            warnx("\tvehicle_vicon_position: off");
+            warnx("\t vehicle_vicon_position: off");
         }
 
         if (vehicle_status_flag) {
-            warnx("\tvehicle_status: on");
+            warnx("\t vehicle_status: on");
         } else {
-            warnx("\tvehicle_status: off");
+            warnx("\t vehicle_status: off");
         }
 
         if (safety_flag) {
-            warnx("\tsafety: on");
+            warnx("\t safety: on");
         } else {
-            warnx("\tsafety: off");
+            warnx("\t safety: off");
         }
 
         if (rc_channels_flag) {
-            warnx("\trc_channels: on");
+            warnx("\t rc_channels: on");
         } else {
-            warnx("\trc_channels: off");
+            warnx("\t rc_channels: off");
         }
 
         if (vehicle_command_flag) {
-            warnx("\tvehicle_command: on");
+            warnx("\t vehicle_command: on");
         } else {
-            warnx("\tvehicle_command: off");
+            warnx("\t vehicle_command: off");
         }
 
         if (actuator_armed_flag) {
-            warnx("\tactuator_armed: on");
+            warnx("\t actuator_armed: on");
         } else {
-            warnx("\tactuator_armed: off");
+            warnx("\t actuator_armed: off");
+        }
+
+        if (manual_control_setpoint_flag) {
+            warnx("\t manual_control_setpoint: on");
+        } else {
+            warnx("\t manual_control_setpoint: off");
+        }
+
+        if (actuator_controls_flag) {
+            warnx("\t actuator_controls: on");
+        } else {
+            warnx("\t actuator_controls: off");
         }
 
         return 0;
@@ -138,10 +155,10 @@ int echo_msgs_main(int argc, char *argv[])
     if (!strcmp(argv[1], "vehicle_vicon_position")) {
         if (vehicle_vicon_position_flag) {
             vehicle_vicon_position_flag = false;
-            warnx("\tvehicle_vicon_position: off");
+            warnx("\t vehicle_vicon_position: off");
         } else {
             vehicle_vicon_position_flag = true;
-            warnx("\tvehicle_vicon_position: on");
+            warnx("\t vehicle_vicon_position: on");
         }
         return 0;
     }
@@ -149,10 +166,10 @@ int echo_msgs_main(int argc, char *argv[])
     if (!strcmp(argv[1], "vehicle_status")) {
         if (vehicle_status_flag) {
             vehicle_status_flag = false;
-            warnx("\tvehicle_status: off");
+            warnx("\t vehicle_status: off");
         } else {
             vehicle_status_flag = true;
-            warnx("\tvehicle_status: on");
+            warnx("\t vehicle_status: on");
         }
         return 0;
     }
@@ -160,10 +177,10 @@ int echo_msgs_main(int argc, char *argv[])
     if (!strcmp(argv[1], "safety")) {
         if (safety_flag) {
             safety_flag = false;
-            warnx("\tsafety: off");
+            warnx("\t safety: off");
         } else {
             safety_flag = true;
-            warnx("\tsafety: on");
+            warnx("\t safety: on");
         }
         return 0;
     }
@@ -171,10 +188,10 @@ int echo_msgs_main(int argc, char *argv[])
     if (!strcmp(argv[1], "rc_channels")) {
         if (rc_channels_flag) {
             rc_channels_flag = false;
-            warnx("\trc_channels: off");
+            warnx("\t rc_channels: off");
         } else {
             rc_channels_flag = true;
-            warnx("\trc_channels: on");
+            warnx("\t rc_channels: on");
         }
         return 0;
     }
@@ -182,10 +199,10 @@ int echo_msgs_main(int argc, char *argv[])
     if (!strcmp(argv[1], "vehicle_command")) {
         if (vehicle_command_flag) {
             vehicle_command_flag = false;
-            warnx("\tvehicle_command: off");
+            warnx("\t vehicle_command: off");
         } else {
             vehicle_command_flag = true;
-            warnx("\tvehicle_command: on");
+            warnx("\t vehicle_command: on");
         }
         return 0;
     }
@@ -193,10 +210,32 @@ int echo_msgs_main(int argc, char *argv[])
     if (!strcmp(argv[1], "actuator_armed")) {
         if (actuator_armed_flag) {
             actuator_armed_flag = false;
-            warnx("\tactuator_armed: off");
+            warnx("\t actuator_armed: off");
         } else {
             actuator_armed_flag = true;
-            warnx("\tactuator_armed: on");
+            warnx("\t actuator_armed: on");
+        }
+        return 0;
+    }
+
+    if (!strcmp(argv[1], "manual_control_setpoint")) {
+        if (manual_control_setpoint_flag) {
+            manual_control_setpoint_flag = false;
+            warnx("\t manual_control_setpoint: off");
+        } else {
+            manual_control_setpoint_flag = true;
+            warnx("\t manual_control_setpoint: on");
+        }
+        return 0;
+    }
+
+    if (!strcmp(argv[1], "actuator_controls")) {
+        if (actuator_controls_flag) {
+            actuator_controls_flag = false;
+            warnx("\t actuator_controls: off");
+        } else {
+            actuator_controls_flag = true;
+            warnx("\t actuator_controls: on");
         }
         return 0;
     }
@@ -234,6 +273,14 @@ int echo_msgs_thread_main(int argc, char *argv[])
     int actuator_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
     struct actuator_armed_s actuator_armed_data;
     memset(&actuator_armed_data, 0, sizeof(actuator_armed_data));
+
+    int manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+    struct manual_control_setpoint_s manual_control_setpoint_data;
+    memset(&manual_control_setpoint_data, 0, sizeof(manual_control_setpoint_data));
+
+    int actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+    struct actuator_controls_s actuator_controls_data;
+    memset(&actuator_controls_data, 0, sizeof(actuator_controls_data));
 
     bool updated = false;
     while (!thread_should_exit) {
@@ -274,6 +321,19 @@ int echo_msgs_thread_main(int argc, char *argv[])
             print_actuator_armed(actuator_armed_data);
         }
 
+        orb_check(manual_control_setpoint_sub, &updated);
+        if (updated & manual_control_setpoint_flag) {
+            orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual_control_setpoint_data);
+            print_manual_control_setpoint(manual_control_setpoint_data);
+        }
+
+        orb_check(actuator_controls_sub, &updated);
+        if (updated & actuator_controls_flag) {
+            orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_controls_sub, &actuator_controls_data);
+            print_actuator_controls(actuator_controls_data);
+        }
+
+
         usleep(500000);
     }
 
@@ -284,7 +344,7 @@ int echo_msgs_thread_main(int argc, char *argv[])
 
 void print_vehicle_vicon_position(struct vehicle_vicon_position_s vehicle_vicon_position_data)
 {
-    printf("vehicle_vicon_position:\n\tx: %8.4f\n\ty: %8.4f\n\tz: %8.4f\n\troll: %8.4f\n\tpitch: %8.4f\n\tyaw: %8.4f\n",
+    printf("vehicle_vicon_position:\n\t x: %8.4f\n\t y: %8.4f\n\t z: %8.4f\n\t roll: %8.4f\n\t pitch: %8.4f\n\t yaw: %8.4f\n",
                    (double)vehicle_vicon_position_data.x,
                    (double)vehicle_vicon_position_data.y,
                    (double)vehicle_vicon_position_data.z,
@@ -295,7 +355,7 @@ void print_vehicle_vicon_position(struct vehicle_vicon_position_s vehicle_vicon_
 
 void print_vehicle_status(struct vehicle_status_s vehicle_status_data)
 {
-    printf("vehicle_status:\n\tsystem_type: %d\n\tsystem_id: %d\n\tcomponent_id: %d\n\tmain_state: %d\n\tarming_state: %d\n\t",
+    printf("vehicle_status:\n\t system_type: %d\n\t system_id: %d\n\t component_id: %d\n\t main_state: %d\n\t arming_state: %d\n\t ",
            vehicle_status_data.system_type,
            vehicle_status_data.system_id,
            vehicle_status_data.component_id,
@@ -305,7 +365,7 @@ void print_vehicle_status(struct vehicle_status_s vehicle_status_data)
 
 void print_safety(struct safety_s safety_data)
 {
-    printf("safety:\n\tsafety_switch_available: %d\n\tsafety_mode: %d\n",
+    printf("safety:\n\t safety_switch_available: %d\n\t safety_mode: %d\n",
            safety_data.safety_switch_available,
            safety_data.safety_mode);
 }
@@ -314,34 +374,66 @@ void print_rc_channels(struct rc_channels_s rc_channels_data)
 {
     printf("rc_channels:\n");
     for (int i=0; i<RC_CHANNELS_FUNCTION_MAX; i++) {
-        printf("\tchannel %d: %8.4f\n", i, (double)rc_channels_data.channels[i]);
+        printf("\t channel %d: %8.4f\n", i, (double)rc_channels_data.channels[i]);
     }
-    printf("\trssi: %d\n", rc_channels_data.rssi);
+    printf("\t rssi: %d\n", rc_channels_data.rssi);
 }
 
 void print_vehicle_command(struct vehicle_command_s vehicle_command_data)
 {
     printf("vehicle_command:\n");
-    printf("\tcommand: %d\n", vehicle_command_data.command);
-    printf("\tparam1: %8.4f\n", (double)vehicle_command_data.param1);
-    printf("\tparam2: %8.4f\n", (double)vehicle_command_data.param2);
-    printf("\tparam3: %8.4f\n", (double)vehicle_command_data.param3);
-    printf("\tparam4: %8.4f\n", (double)vehicle_command_data.param4);
-    printf("\tparam5: %8.4f\n", (double)vehicle_command_data.param5);
-    printf("\tparam6: %8.4f\n", (double)vehicle_command_data.param6);
-    printf("\tparam7: %8.4f\n", (double)vehicle_command_data.param7);
-    printf("\ttarget_system: %d\n", vehicle_command_data.target_system);
-    printf("\ttarget_component: %d\n", vehicle_command_data.target_component);
-    printf("\tsource_system: %d\n", vehicle_command_data.source_system);
-    printf("\tsource_component: %d\n", vehicle_command_data.source_component);
+    printf("\t command: %d\n", vehicle_command_data.command);
+    printf("\t param1: %8.4f\n", (double)vehicle_command_data.param1);
+    printf("\t param2: %8.4f\n", (double)vehicle_command_data.param2);
+    printf("\t param3: %8.4f\n", (double)vehicle_command_data.param3);
+    printf("\t param4: %8.4f\n", (double)vehicle_command_data.param4);
+    printf("\t param5: %8.4f\n", (double)vehicle_command_data.param5);
+    printf("\t param6: %8.4f\n", (double)vehicle_command_data.param6);
+    printf("\t param7: %8.4f\n", (double)vehicle_command_data.param7);
+    printf("\t target_system: %d\n", vehicle_command_data.target_system);
+    printf("\t target_component: %d\n", vehicle_command_data.target_component);
+    printf("\t source_system: %d\n", vehicle_command_data.source_system);
+    printf("\t source_component: %d\n", vehicle_command_data.source_component);
 }
 
 void print_actuator_armed(struct actuator_armed_s actuator_armed_data)
 {
     printf("actuator_armed:\n");
-    printf("\ttimestamp: %d\n", actuator_armed_data.timestamp);
-    printf("\tarmed: %d\n", actuator_armed_data.armed);
-    printf("\tready_to_arm: %d\n", actuator_armed_data.ready_to_arm);
-    printf("\tlockdown: %d\n", actuator_armed_data.lockdown);
-    printf("\tforce_failsafe: %d\n", actuator_armed_data.force_failsafe);
+    printf("\t timestamp: %d\n", actuator_armed_data.timestamp);
+    printf("\t armed: %d\n", actuator_armed_data.armed);
+    printf("\t ready_to_arm: %d\n", actuator_armed_data.ready_to_arm);
+    printf("\t lockdown: %d\n", actuator_armed_data.lockdown);
+    printf("\t force_failsafe: %d\n", actuator_armed_data.force_failsafe);
+}
+
+void print_manual_control_setpoint(struct manual_control_setpoint_s manual_control_setpoint_data)
+{
+    printf("manual_control_setpoint:\n");
+    printf("\t timestamp: %d\n", manual_control_setpoint_data.timestamp);
+    printf("\t x: %8.4f\n", (double)manual_control_setpoint_data.x);
+    printf("\t y: %8.4f\n", (double)manual_control_setpoint_data.y);
+    printf("\t z: %8.4f\n", (double)manual_control_setpoint_data.z);
+    printf("\t r: %8.4f\n", (double)manual_control_setpoint_data.r);
+    printf("\t flaps: %8.4f\n", (double)manual_control_setpoint_data.flaps);
+    printf("\t aux1: %8.4f\n", (double)manual_control_setpoint_data.aux1);
+    printf("\t aux2: %8.4f\n", (double)manual_control_setpoint_data.aux2);
+    printf("\t aux3: %8.4f\n", (double)manual_control_setpoint_data.aux3);
+    printf("\t aux4: %8.4f\n", (double)manual_control_setpoint_data.aux4);
+    printf("\t aux5: %8.4f\n", (double)manual_control_setpoint_data.aux5);
+    printf("\t mode_switch: %d\n", manual_control_setpoint_data.mode_switch);
+    printf("\t return_switch: %d\n", manual_control_setpoint_data.return_switch);
+    printf("\t posctl_switch: %d\n", manual_control_setpoint_data.posctl_switch);
+    printf("\t loiter_switch: %d\n", manual_control_setpoint_data.loiter_switch);
+    printf("\t acro_switch: %d\n", manual_control_setpoint_data.acro_switch);
+    printf("\t offboard_switch: %d\n", manual_control_setpoint_data.offboard_switch);
+}
+
+void print_actuator_controls(struct actuator_controls_s actuator_controls_data)
+{
+    printf("actuator_controls:\n");
+    printf("\t timestamp: %d\n", actuator_controls_data.timestamp);
+    for (int i=0; i<NUM_ACTUATOR_CONTROLS; ++i) {
+        printf("\t control[%d]: %8.4f\n", i, (double)actuator_controls_data.control[i]);
+    }
+
 }
