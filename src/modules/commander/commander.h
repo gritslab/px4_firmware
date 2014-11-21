@@ -14,8 +14,13 @@
 //------------------------------------------------------------------------------
 #include <string.h>
 
+// Subscribers
 #include <uORB/topics/safety.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/battery_status.h>
+
+// Publishers
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/actuator_armed.h>
 
@@ -33,12 +38,14 @@ public:
     //--------------------------------------------------------------------------
     Commander();
 
-    ~Commander();
+    // ~Commander();
 
     //--------------------------------------------------------------------------
     // Public Member Getters and Setters
     //--------------------------------------------------------------------------
-
+    // Flag getter
+    bool low_battery() { return (m_flag & LOW_BATTERY); };
+    bool critical_battery() { return (m_flag & CRITICAL_BATTERY); };
 
     //--------------------------------------------------------------------------
     // Public Member Constants and Variables
@@ -47,6 +54,13 @@ public:
     const int sleep_interval = 50000;
     const float stick_arm_disarm_limit = 0.9f;
     const int stick_arm_disarm_wait_time_ms = 1000;
+    const float low_battery_voltage = 11.1;
+    const float critical_battery_voltage = 10.9;
+
+    const rgbled_color_t warning_color = RGBLED_COLOR_RED;
+    const rgbled_color_t safety_color = RGBLED_COLOR_AMBER;
+    const rgbled_color_t disarmed_color = RGBLED_COLOR_BLUE;
+    const rgbled_color_t armed_color = RGBLED_COLOR_GREEN;
 
     // Variables
     FiniteState finite_state;
@@ -58,7 +72,7 @@ public:
     void init();
     void deinit();
     void msg(const char* info);
-    void print_state() { finite_state.print_state(); };
+    void print_state();
     void update();
     int toggle_arm();
     int arm();
@@ -68,6 +82,8 @@ private:
     //--------------------------------------------------------------------------
     // Private Member Variables
     //--------------------------------------------------------------------------
+    Flag m_flag;
+
     int m_stick_arm_disarm_counter_limit;
     int m_stick_arm_disarm_counter;
 
@@ -77,6 +93,12 @@ private:
 
     int m_manual_control_setpoint_sub;
     struct manual_control_setpoint_s m_manual_control_setpoint;
+
+    int m_vehicle_command_sub;
+    struct vehicle_command_s m_vehicle_command;
+
+    int m_battery_status_sub;
+    struct battery_status_s m_battery_status;
 
     // Publisher variables
     orb_advert_t m_vehicle_control_mode_pub;
@@ -97,6 +119,8 @@ private:
     void m_update_vars_based_on_state();
     void m_check_safety();
     void m_check_rc_arm_disarm(int arm_state_check);
+    void m_check_vehicle_command();
+    void m_check_battery_status();
 };
 
 #endif

@@ -32,6 +32,7 @@
 //------------------------------------------------------------------------------
 Commander::Commander()
 :
+m_flag(0),
 m_stick_arm_disarm_counter(0)
 {
     finite_state[FLIGHT_STATE] = TELEOP; // TODO: remove
@@ -41,10 +42,10 @@ m_stick_arm_disarm_counter(0)
     m_stick_arm_disarm_counter_limit = stick_arm_disarm_wait_time_ms * commander_monitoring_loops_per_msec;
 }
 
-Commander::~Commander()
-{
+// Commander::~Commander()
+// {
 
-}
+// }
 
 //--------------------------------------------------------------------------
 // Public Member Getters and Setters
@@ -82,6 +83,15 @@ void Commander::msg(const char* info)
 {
     warnx("%s", info);
 }
+
+void Commander::print_state()
+{
+    finite_state.print_state();
+    printf("LOW_BATTERY_FLAG: %s\n",
+           (low_battery() ? "TRUE" : "FALSE"));
+    printf("CRITICAL_BATTERY_FLAG: %s\n",
+           (critical_battery() ? "TRUE" : "FALSE"));
+};
 
 void Commander::update()
 {
@@ -132,12 +142,21 @@ void Commander::m_init_orb_subscribers()
     // manual_control_setpoint topic (for RC inputs)
     m_manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
     memset(&m_manual_control_setpoint, 0, sizeof(m_manual_control_setpoint));
+
+    // vehicle_command topic
+    m_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+    memset(&m_vehicle_command, 0, sizeof(m_vehicle_command));
+
+    // battery_status topic
+    m_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
+    memset(&m_battery_status, 0, sizeof(m_battery_status));
 }
 
 void Commander::m_close_orb_subscribers()
 {
     close(m_safety_sub);
     close(m_manual_control_setpoint_sub);
+    close(m_vehicle_command_sub);
 }
 
 void Commander::m_init_orb_publishers()
@@ -199,6 +218,12 @@ void Commander::m_update_finite_state()
             m_check_rc_arm_disarm(DISARMED);
         }
     }
+
+    // Vehicle commands
+    m_check_vehicle_command();
+
+    // Battery status
+    m_check_battery_status();
 }
 
 void Commander::m_update_vars_based_on_state()
@@ -227,14 +252,30 @@ void Commander::m_update_vars_based_on_state()
     }
 
     // led
+    rgbled_color_t led_color;
     if (finite_state[ARM_STATE] == SAFETY) {
-        led.set_color(RGBLED_COLOR_AMBER);
-        led.set_mode(RGBLED_MODE_ON);
+        led_color = safety_color;
     } else if (finite_state[ARM_STATE] == DISARMED) {
-        led.set_color(RGBLED_COLOR_BLUE);
-        led.set_mode(RGBLED_MODE_ON);
+        led_color = disarmed_color;
     } else if (finite_state[ARM_STATE] == ARMED) {
-        led.set_color(RGBLED_COLOR_GREEN);
+        led_color = armed_color;
+    }
+
+    if (low_battery() && !critical_battery()) {
+        led.set_color(led_color);
+        led.set_mode(RGBLED_MODE_BLINK_NORMAL);
+    } else if (critical_battery()) {
+        rgbled_pattern_t led_pattern;
+        for (int i=0; i<RGBLED_PATTERN_LENGTH; i+=2) {
+            led_pattern.color[i] = led_color;
+            led_pattern.duration[i] = 500;
+            led_pattern.color[i+1] = warning_color;
+            led_pattern.duration[i+1] = 500;
+        }
+        led.set_pattern(&led_pattern);
+        led.set_mode(RGBLED_MODE_PATTERN);
+    } else {
+        led.set_color(led_color);
         led.set_mode(RGBLED_MODE_ON);
     }
 }
@@ -281,6 +322,50 @@ void Commander::m_check_rc_arm_disarm(int arm_state_check)
             } else {
                 m_stick_arm_disarm_counter++;
             }
+        }
+    }
+}
+
+void Commander::m_check_vehicle_command()
+{
+    bool updated;
+    orb_check(m_vehicle_command_sub, &updated);
+    if (updated) {
+        orb_copy(ORB_ID(vehicle_command),
+                 m_vehicle_command_sub,
+                 &m_vehicle_command);
+
+        switch (m_vehicle_command.command) {
+            case VEHICLE_CMD_COMPONENT_ARM_DISARM:
+                toggle_arm();
+                break;
+
+        default:
+                // mavlink_log_critical(mavlink_fd, "command unsupported: %u", cmd.command);
+                break;
+        }
+    }
+}
+
+void Commander::m_check_battery_status()
+{
+    bool updated;
+    orb_check(m_battery_status_sub, &updated);
+    if (updated) {
+        orb_copy(ORB_ID(battery_status),
+                 m_battery_status_sub,
+                 &m_battery_status);
+
+        if (m_battery_status.voltage_filtered_v <= low_battery_voltage) {
+            m_flag |= LOW_BATTERY;
+        } else {
+            m_flag &= ~LOW_BATTERY;
+        }
+
+        if (m_battery_status.voltage_filtered_v <= critical_battery_voltage) {
+            m_flag |= CRITICAL_BATTERY;
+        } else {
+            m_flag &= ~CRITICAL_BATTERY;
         }
     }
 }

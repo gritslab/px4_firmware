@@ -26,7 +26,7 @@
 #include <drivers/drv_rc_input.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
-
+#include <uORB/topics/battery_status.h>
 
 //------------------------------------------------------------------------------
 // Global Variables
@@ -46,6 +46,7 @@ static bool actuator_controls_flag = false;
 static bool input_rc_flag = false;
 static bool vehicle_control_mode_flag = false;
 static bool vehicle_rates_setpoint_flag = false;
+static bool battery_status_flag = false;
 
 //------------------------------------------------------------------------------
 // Function Definitions
@@ -65,6 +66,7 @@ void print_actuator_controls(struct actuator_controls_s actuator_controls_data);
 void print_input_rc(struct rc_input_values input_rc_data);
 void print_vehicle_control_mode(struct vehicle_control_mode_s vehicle_control_mode_data);
 void print_vehicle_rates_setpoint(struct vehicle_rates_setpoint_s vehicle_rates_setpoint_data);
+void print_battery_status(struct battery_status_s battery_status_data);
 
 //------------------------------------------------------------------------------
 // Function Implementations
@@ -174,6 +176,12 @@ int echo_msgs_main(int argc, char *argv[])
             warnx("\t vehicle_rates_setpoint: on");
         } else {
             warnx("\t vehicle_rates_setpoint: off");
+        }
+
+        if (battery_status_flag) {
+            warnx("\t battery_status: on");
+        } else {
+            warnx("\t battery_status: off");
         }
 
         return 0;
@@ -300,6 +308,17 @@ int echo_msgs_main(int argc, char *argv[])
         return 0;
     }
 
+    if (!strcmp(argv[1], "battery_status")) {
+        if (battery_status_flag) {
+            battery_status_flag = false;
+            warnx("\t battery_status: off");
+        } else {
+            battery_status_flag = true;
+            warnx("\t battery_status: on");
+        }
+        return 0;
+    }
+
     usage("unrecognized command");
     return 1;
 }
@@ -353,6 +372,10 @@ int echo_msgs_thread_main(int argc, char *argv[])
     int vehicle_rates_setpoint_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
     struct vehicle_rates_setpoint_s vehicle_rates_setpoint_data;
     memset(&vehicle_rates_setpoint_data, 0, sizeof(vehicle_rates_setpoint_data));
+
+    int battery_status_sub = orb_subscribe(ORB_ID(battery_status));
+    struct battery_status_s battery_status_data;
+    memset(&battery_status_data, 0, sizeof(battery_status_data));
 
     bool updated = false;
     while (!thread_should_exit) {
@@ -421,6 +444,12 @@ int echo_msgs_thread_main(int argc, char *argv[])
         if (updated & vehicle_rates_setpoint_flag) {
             orb_copy(ORB_ID(vehicle_rates_setpoint), vehicle_rates_setpoint_sub, &vehicle_rates_setpoint_data);
             print_vehicle_rates_setpoint(vehicle_rates_setpoint_data);
+        }
+
+        orb_check(battery_status_sub, &updated);
+        if (updated & battery_status_flag) {
+            orb_copy(ORB_ID(battery_status), battery_status_sub, &battery_status_data);
+            print_battery_status(battery_status_data);
         }
 
         usleep(500000);
@@ -571,4 +600,14 @@ void print_vehicle_rates_setpoint(struct vehicle_rates_setpoint_s vehicle_rates_
     printf("\t pitch: %8.4f\n", (double)vehicle_rates_setpoint_data.pitch);
     printf("\t yaw: %8.4f\n", (double)vehicle_rates_setpoint_data.yaw);
     printf("\t thrust: %8.4f\n", (double)vehicle_rates_setpoint_data.thrust);
+}
+
+void print_battery_status(struct battery_status_s battery_status_data)
+{
+    printf("battery_status:\n");
+    printf("\t timestamp: %ld\n", (long)battery_status_data.timestamp);
+    printf("\t voltage_v: %8.4f\n", (double)battery_status_data.voltage_v);
+    printf("\t voltage_filtered_v: %8.4f\n", (double)battery_status_data.voltage_filtered_v);
+    printf("\t current_a: %8.4f\n", (double)battery_status_data.current_a);
+    printf("\t discharged_mah: %8.4f\n", (double)battery_status_data.discharged_mah);
 }

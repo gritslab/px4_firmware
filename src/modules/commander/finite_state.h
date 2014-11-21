@@ -18,11 +18,12 @@
 // Constants and Enums
 //------------------------------------------------------------------------------
 
+// Finite State
 enum FiniteStateNames
 {
     ARM_STATE=0,
     FLIGHT_STATE,
-    SETPOINT_STATE
+    SETPOINT_STATE,
 };
 
 // DIM 0
@@ -61,6 +62,14 @@ enum Commands
     CHANGE_MODE
 };
 
+// Flags
+enum Flags
+{
+    LOW_BATTERY = 1,
+    CRITICAL_BATTERY = 2
+};
+
+typedef unsigned Flag; // Up to 32 flags
 
 //==============================================================================
 // FiniteState Class
