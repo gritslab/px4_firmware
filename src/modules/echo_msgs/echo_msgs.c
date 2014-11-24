@@ -27,6 +27,8 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/sensor_combined.h>
+
 
 //------------------------------------------------------------------------------
 // Global Variables
@@ -47,6 +49,7 @@ static bool input_rc_flag = false;
 static bool vehicle_control_mode_flag = false;
 static bool vehicle_rates_setpoint_flag = false;
 static bool battery_status_flag = false;
+static bool sensor_combined_flag = false;
 
 //------------------------------------------------------------------------------
 // Function Definitions
@@ -67,6 +70,7 @@ void print_input_rc(struct rc_input_values input_rc_data);
 void print_vehicle_control_mode(struct vehicle_control_mode_s vehicle_control_mode_data);
 void print_vehicle_rates_setpoint(struct vehicle_rates_setpoint_s vehicle_rates_setpoint_data);
 void print_battery_status(struct battery_status_s battery_status_data);
+void print_sensor_combined(struct sensor_combined_s sensor_combined_data);
 
 //------------------------------------------------------------------------------
 // Function Implementations
@@ -74,7 +78,7 @@ void print_battery_status(struct battery_status_s battery_status_data);
 static void usage(const char *reason) {
     if (reason)
         warnx("%s\n", reason);
-    errx(1, "usage: daemon {start|stop|status} [-p <additional params>]\n\n");
+    errx(1, "usage: echo_msgs {start|stop|status}\n\n");
 }
 
 int echo_msgs_main(int argc, char *argv[])
@@ -94,7 +98,7 @@ int echo_msgs_main(int argc, char *argv[])
         daemon_task = task_spawn_cmd("daemon",
                      SCHED_DEFAULT,
                      SCHED_PRIORITY_DEFAULT,
-                     2000,
+                     4096,
                      echo_msgs_thread_main,
                      (argv) ? (const char **)&argv[2] : (const char **)NULL);
         return 0;
@@ -182,6 +186,12 @@ int echo_msgs_main(int argc, char *argv[])
             warnx("\t battery_status: on");
         } else {
             warnx("\t battery_status: off");
+        }
+
+        if (sensor_combined_flag) {
+            warnx("\t sensor_combined: on");
+        } else {
+            warnx("\t sensor_combined: off");
         }
 
         return 0;
@@ -319,6 +329,17 @@ int echo_msgs_main(int argc, char *argv[])
         return 0;
     }
 
+    if (!strcmp(argv[1], "sensor_combined")) {
+        if (sensor_combined_flag) {
+            sensor_combined_flag = false;
+            warnx("\t sensor_combined: off");
+        } else {
+            battery_status_flag = true;
+            warnx("\t sensor_combined: on");
+        }
+        return 0;
+    }
+
     usage("unrecognized command");
     return 1;
 }
@@ -376,6 +397,10 @@ int echo_msgs_thread_main(int argc, char *argv[])
     int battery_status_sub = orb_subscribe(ORB_ID(battery_status));
     struct battery_status_s battery_status_data;
     memset(&battery_status_data, 0, sizeof(battery_status_data));
+
+    int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
+    struct sensor_combined_s sensor_combined_data;
+    memset(&sensor_combined_data, 0, sizeof(sensor_combined_data));
 
     bool updated = false;
     while (!thread_should_exit) {
@@ -452,6 +477,12 @@ int echo_msgs_thread_main(int argc, char *argv[])
             print_battery_status(battery_status_data);
         }
 
+        orb_check(sensor_combined_sub, &updated);
+        if (updated & sensor_combined_flag) {
+            orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor_combined_data);
+            print_sensor_combined(sensor_combined_data);
+        }
+
         usleep(500000);
     }
 
@@ -525,7 +556,6 @@ void print_actuator_armed(struct actuator_armed_s actuator_armed_data)
     printf("\t armed: %d\n", actuator_armed_data.armed);
     printf("\t ready_to_arm: %d\n", actuator_armed_data.ready_to_arm);
     printf("\t lockdown: %d\n", actuator_armed_data.lockdown);
-    printf("\t force_failsafe: %d\n", actuator_armed_data.force_failsafe);
 }
 
 void print_manual_control_setpoint(struct manual_control_setpoint_s manual_control_setpoint_data)
@@ -579,13 +609,10 @@ void print_vehicle_control_mode(struct vehicle_control_mode_s vehicle_control_mo
     printf("\t timestamp: %ld\n", (long)vehicle_control_mode_data.timestamp);
     printf("\t flag_armed: %d\n", vehicle_control_mode_data.flag_armed);
     printf("\t flag_external_manual_override_ok: %d\n", vehicle_control_mode_data.flag_external_manual_override_ok);
-    printf("\t flag_system_hil_enabled: %d\n", vehicle_control_mode_data.flag_system_hil_enabled);
     printf("\t flag_control_manual_enabled: %d\n", vehicle_control_mode_data.flag_control_manual_enabled);
     printf("\t flag_control_auto_enabled: %d\n", vehicle_control_mode_data.flag_control_auto_enabled);
-    printf("\t flag_control_offboard_enabled: %d\n", vehicle_control_mode_data.flag_control_offboard_enabled);
     printf("\t flag_control_rates_enabled: %d\n", vehicle_control_mode_data.flag_control_rates_enabled);
     printf("\t flag_control_attitude_enabled: %d\n", vehicle_control_mode_data.flag_control_attitude_enabled);
-    printf("\t flag_control_force_enabled: %d\n", vehicle_control_mode_data.flag_control_force_enabled);
     printf("\t flag_control_velocity_enabled: %d\n", vehicle_control_mode_data.flag_control_velocity_enabled);
     printf("\t flag_control_altitude_enabled: %d\n", vehicle_control_mode_data.flag_control_altitude_enabled);
     printf("\t flag_control_climb_rate_enabled: %d\n", vehicle_control_mode_data.flag_control_climb_rate_enabled);
@@ -610,4 +637,13 @@ void print_battery_status(struct battery_status_s battery_status_data)
     printf("\t voltage_filtered_v: %8.4f\n", (double)battery_status_data.voltage_filtered_v);
     printf("\t current_a: %8.4f\n", (double)battery_status_data.current_a);
     printf("\t discharged_mah: %8.4f\n", (double)battery_status_data.discharged_mah);
+}
+
+void print_sensor_combined(struct sensor_combined_s sensor_combined_data)
+{
+    printf("sensor_combined:\n");
+    printf("\t timestamp: %ld\n", (long)sensor_combined_data.timestamp);
+    printf("\t gyro_raw: %d,\t %d,\t %d\n", sensor_combined_data.gyro_raw[0],
+                                          sensor_combined_data.gyro_raw[1],
+                                          sensor_combined_data.gyro_raw[2]);
 }
